@@ -9,11 +9,12 @@ import {
   LoaderCircle,
   MapPin,
   MessageCircle,
+  Phone,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Role = "tenant" | "agent" | "landlord" | "admin" | string;
-type Profile = { id: string; full_name: string | null; username: string | null; bio: string | null; avatar_url: string | null; role: Role };
+type Profile = { id: string; full_name: string | null; username: string | null; bio: string | null; avatar_url: string | null; contact_phone: string | null; location: string | null; role: Role };
 type Property = {
   id: string;
   title: string | null;
@@ -196,6 +197,16 @@ function PublicProfileContent() {
                     <dt className="text-[#687987]">Profile photo</dt>
                     <dd className="text-right font-bold">{profile.avatar_url ? "Added" : "Not added"}</dd>
                   </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="flex items-center gap-1.5 text-[#687987]"><MapPin size={15} /> Location</dt>
+                    <dd className="max-w-[60%] text-right font-bold">{profile.location?.trim() || "Not added"}</dd>
+                  </div>
+                  {profile.contact_phone?.trim() && (
+                    <div className="flex items-start justify-between gap-4">
+                      <dt className="flex items-center gap-1.5 text-[#687987]"><Phone size={15} /> Contact</dt>
+                      <dd className="text-right font-bold"><a className="text-[#087b62] underline" href={"tel:" + profile.contact_phone}>{profile.contact_phone}</a></dd>
+                    </div>
+                  )}
                 </dl>
                 {currentUserId !== profile.id && (
                   <button

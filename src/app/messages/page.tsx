@@ -19,7 +19,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 type Role = "tenant" | "agent" | "landlord" | "admin" | string;
-type Profile = { id: string; full_name: string | null; role: Role };
+type Profile = { id: string; full_name: string | null; username?: string | null; bio?: string | null; avatar_url?: string | null; role: Role };
 type ConversationRow = {
   id: string;
   title: string | null;
@@ -513,8 +513,8 @@ function MessagesContent() {
                   {filteredPeople.map((person) => (
                     <div key={person.id} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-[#f5f7f8]">
                       <button onClick={() => router.push(`/profile/${person.id}`)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left" aria-label={`View ${displayName(person)}'s profile`}>
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4] text-[#102f46]"><CircleUserRound size={20} /></div>
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{displayName(person)}</p><p className="mt-0.5 text-xs text-[#087b62]">{roleLabel(person.role)} · View profile</p></div>
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4] text-[#102f46]">{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={20} />}</div>
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{displayName(person)}</p><p className="mt-0.5 truncate text-xs text-[#687987]">{person.username ? `@${person.username}` : roleLabel(person.role)}</p><p className="mt-0.5 text-xs text-[#087b62]">{roleLabel(person.role)} · View profile</p></div>
                       </button>
                       <button onClick={() => choosePerson(person)} className="shrink-0 rounded-full bg-[#102f46] px-3 py-2 text-xs font-bold text-white hover:bg-[#183d57]">Message</button>
                     </div>
@@ -541,9 +541,9 @@ function MessagesContent() {
               <>
                 <div className="flex items-center gap-3 border-b border-[#edf0f2] px-4 py-4 sm:px-6">
                   <button onClick={() => { setActiveConversationId(""); setNewChatTargetId(""); setDirectoryOpen(true); }} className="rounded-lg p-2 hover:bg-[#f5f7f8] md:hidden" aria-label="Back to chats"><ArrowLeft size={17} /></button>
-                  <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4] hover:ring-2 hover:ring-[#087b62]" aria-label="Open this person's profile"><CircleUserRound size={22} /></button>
+                  <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4] hover:ring-2 hover:ring-[#087b62]" aria-label="Open this person's profile">{activeOther?.avatar_url ? <img src={activeOther.avatar_url} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={22} />}</button>
                   <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="min-w-0 flex-1 text-left">
-                    <p className="truncate font-bold hover:underline">{activeChat?.otherName ?? displayName(newChatPerson)}</p><p className="mt-0.5 text-xs font-semibold text-[#087b62]">{roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")} · View profile</p>
+                    <p className="truncate font-bold hover:underline">{activeChat?.otherName ?? displayName(newChatPerson)}</p><p className="mt-0.5 truncate text-xs text-[#687987]">{activeOther?.username ? `@${activeOther.username}` : roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")}</p><p className="mt-0.5 text-xs font-semibold text-[#087b62]">{roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")} · View profile</p>
                   </button>
                   <span className="hidden items-center gap-1 rounded-full bg-[#f5f7f8] px-3 py-1.5 text-[10px] font-bold text-[#687987] sm:inline-flex"><ShieldCheck size={13} /> Role verified from profile</span>
                 </div>

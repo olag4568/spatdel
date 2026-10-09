@@ -466,7 +466,8 @@ function MessagesContent() {
     : newChatPerson;
   const filteredPeople = directoryPeople.filter((person) => {
     const query = search.trim().toLowerCase();
-    const matchesName = !query || displayName(person).toLowerCase().includes(query);
+    const cleanQuery = query.replace(/^@/, "");
+    const matchesName = !query || displayName(person).toLowerCase().includes(query) || (person.username ?? "").toLowerCase().includes(cleanQuery);
     const matchesRole = roleFilter === "all" || person.role.toLowerCase() === roleFilter;
     return matchesName && matchesRole;
   });
@@ -526,7 +527,7 @@ function MessagesContent() {
               <div className="max-h-[65vh] overflow-y-auto p-2">
                 {conversations.map((chat) => (
                   <button key={chat.id} onClick={() => { setNewChatTargetId(""); setActiveConversationId(chat.id); setDirectoryOpen(false); setError(""); }} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left transition ${activeConversationId === chat.id ? "bg-[#e8f4ed]" : "hover:bg-[#f5f7f8]"}`}>
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4]"><CircleUserRound size={21} /></div>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4]">{people.find((person) => person.id === chat.otherUserId)?.avatar_url ? <img src={people.find((person) => person.id === chat.otherUserId)?.avatar_url ?? ""} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={21} />}</div>
                     <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{chat.otherName}</p><span className="text-[10px] text-[#8a969f]">{new Date(chat.updated_at).toLocaleDateString("en-NG")}</span></div><p className="mt-1 text-xs font-semibold text-[#087b62]">{roleLabel(chat.otherRole)}</p><p className="mt-1 truncate text-xs text-[#8a969f]">{chat.title || "Direct message"}</p></div>
                   </button>
                 ))}

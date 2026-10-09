@@ -7,11 +7,13 @@ import {
   ArrowLeft,
   Building2,
   CheckCircle2,
+  MessageCircle,
   ImagePlus,
   LoaderCircle,
   MapPin,
   Send,
   Trash2,
+  X,
   Upload,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -28,6 +30,27 @@ type Listing = {
   review_note?: string | null;
 };
 
+type Enquiry = {
+  id: string;
+  property_id: string;
+  tenant_id: string;
+  subject: string;
+  message: string;
+  status: string;
+  created_at: string;
+  property_title: string;
+  tenant_name: string;
+};
+
+type EnquiryMessage = {
+  id: string;
+  enquiry_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  read_at?: string | null;
+};
+
 const MAX_PHOTOS = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -41,6 +64,12 @@ export default function AgentDashboard() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [selectedEnquiryId, setSelectedEnquiryId] = useState("");
+  const [enquiryMessages, setEnquiryMessages] = useState<EnquiryMessage[]>([]);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [loadingEnquiries, setLoadingEnquiries] = useState(false);
+  const [sendingReply, setSendingReply] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
 
   const [title, setTitle] = useState("");
@@ -103,6 +132,36 @@ export default function AgentDashboard() {
         setListings((ownListings ?? []) as Listing[]);
       }
 
+      if (!listingsError && ownListings?.length) {
+        setLoadingEnquiries(true);
+        const propertyIds = ownListings.map((listing) => listing.id);
+        const { data: enquiryRows, error: enquiryError } = await supabase
+          .from("property_enquiries")
+          .select("id, property_id, tenant_id, subject, message, status, created_at")
+          .in("property_id", propertyIds)
+          .order("created_at", { ascending: false });
+
+        if (!active) return;
+
+        if (enquiryError) {
+          setError((current) => current || "Property enquiries could not load. Check the enquiry table permissions and migrations.");
+        } else {
+          const rows = enquiryRows || [];
+          const tenantIds = Array.from(new Set(rows.map((row) => row.tenant_id)));
+          const { data: tenantProfiles } = tenantIds.length
+            ? await supabase.from("profiles").select("id, full_name, email").in("id", tenantIds)
+            : { data: [] };
+          const tenantNameById = new Map((tenantProfiles || []).map((tenant) => [tenant.id, tenant.full_name || tenant.email || "SPATDEL tenant"]));
+          const titleById = new Map(ownListings.map((listing) => [listing.id, listing.title]));
+          setEnquiries(rows.map((row) => ({
+            ...row,
+            property_title: titleById.get(row.property_id) || "Your property",
+            tenant_name: tenantNameById.get(row.tenant_id) || "SPATDEL tenant",
+          })) as Enquiry[]);
+        }
+        setLoadingEnquiries(false);
+      }
+
       setLoading(false);
     }
 
@@ -111,6 +170,58 @@ export default function AgentDashboard() {
       active = false;
     };
   }, [router, supabase]);
+
+  async function openEnquiry(enquiry: Enquiry) {
+    setSelectedEnquiryId(enquiry.id);
+    setReplyDraft("");
+    setError("");
+    const { data, error: messageError } = await supabase
+      .from("property_messages")
+      .select("id, enquiry_id, sender_id, message, created_at, read_at")
+      .eq("enquiry_id", enquiry.id)
+      .order("created_at", { ascending: true });
+
+    if (messageError) {
+      setError("Could not load this conversation. Please check property message permissions.");
+      setEnquiryMessages([]);
+      return;
+    }
+
+    setEnquiryMessages((data || []) as EnquiryMessage[]);
+    await supabase
+      .from("property_enquiries")
+      .update({ status: "responded" })
+      .eq("id", enquiry.id);
+  }
+
+  async function sendEnquiryReply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const enquiry = enquiries.find((item) => item.id === selectedEnquiryId);
+    const message = replyDraft.trim();
+    if (!profile || !enquiry || !message || sendingReply) return;
+
+    setError("");
+    setNotice("");
+    setSendingReply(true);
+
+    const { data, error: insertError } = await supabase
+      .from("property_messages")
+      .insert({ enquiry_id: enquiry.id, sender_id: profile.id, message })
+      .select("id, enquiry_id, sender_id, message, created_at, read_at")
+      .single();
+
+    if (insertError) {
+      setError("Reply could not be sent. Check the property_messages insert policy.");
+      setSendingReply(false);
+      return;
+    }
+
+    setEnquiryMessages((current) => [...current, data as EnquiryMessage]);
+    setReplyDraft("");
+    setEnquiries((current) => current.map((item) => item.id === enquiry.id ? { ...item, status: "responded" } : item));
+    setNotice("Reply sent to the tenant.");
+    setSendingReply(false);
+  }
 
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     setError("");
@@ -383,6 +494,40 @@ export default function AgentDashboard() {
         </div>
 
         <aside className="space-y-5">
+          <div className="rounded-3xl border border-[#dce3e7] bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div><h2 className="text-lg font-bold">Property enquiries</h2><p className="mt-1 text-sm text-[#687987]">Reply to tenants asking about your listings.</p></div>
+              <span className="rounded-full bg-[#e8f4ed] px-3 py-1 text-xs font-bold text-[#087b62]">{enquiries.length}</span>
+            </div>
+            {loadingEnquiries ? <p className="py-6 text-sm text-[#687987]">Loading enquiries...</p> : enquiries.length === 0 ? (
+              <div className="mt-4 rounded-2xl bg-[#f5f7f8] p-4"><MessageCircle className="text-[#087b62]" size={22} /><p className="mt-2 text-sm font-bold">No enquiries yet</p><p className="mt-1 text-xs leading-5 text-[#687987]">When tenants contact you about your properties, their enquiries will appear here.</p></div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {enquiries.map((enquiry) => (
+                  <button key={enquiry.id} onClick={() => void openEnquiry(enquiry)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedEnquiryId === enquiry.id ? "border-[#087b62] bg-[#f0faf5]" : "border-[#e3e8eb] hover:border-[#087b62]/40"}`}>
+                    <div className="flex items-start justify-between gap-2"><p className="font-bold">{enquiry.subject}</p><span className="rounded-full bg-[#eef2f5] px-2 py-1 text-[10px] font-bold text-[#536776]">{enquiry.status}</span></div>
+                    <p className="mt-1 text-xs font-semibold text-[#087b62]">{enquiry.property_title}</p>
+                    <p className="mt-2 text-xs text-[#687987]">From {enquiry.tenant_name} · {new Date(enquiry.created_at).toLocaleDateString("en-NG")}</p>
+                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#536776]">{enquiry.message}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedEnquiryId && (
+              <div className="mt-5 border-t border-[#e3e8eb] pt-5">
+                <div className="mb-3 flex items-center justify-between gap-2"><h3 className="font-bold">Conversation</h3><button onClick={() => { setSelectedEnquiryId(""); setEnquiryMessages([]); }} className="rounded-lg p-1 text-[#687987] hover:bg-[#f5f7f8]" aria-label="Close conversation"><X size={17} /></button></div>
+                <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl bg-[#f5f7f8] p-3">
+                  {enquiryMessages.map((message) => <div key={message.id} className={`max-w-[90%] rounded-xl p-3 ${message.sender_id === profile?.id ? "ml-auto bg-[#102f46] text-white" : "bg-white text-[#102f46]"}`}><p className="whitespace-pre-wrap break-words text-sm">{message.message}</p><p className="mt-2 text-[10px] opacity-65">{new Date(message.created_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}</p></div>)}
+                  {enquiryMessages.length === 0 && <p className="text-sm text-[#687987]">No messages found for this enquiry.</p>}
+                </div>
+                <form onSubmit={sendEnquiryReply} className="mt-3 flex gap-2">
+                  <input value={replyDraft} onChange={(event) => setReplyDraft(event.target.value.slice(0, 2000))} maxLength={2000} placeholder="Write a reply to the tenant..." className="min-w-0 flex-1 rounded-xl border border-[#d5dde2] px-3 py-3 text-sm outline-none focus:border-[#087b62]" />
+                  <button disabled={!replyDraft.trim() || sendingReply} className="flex items-center gap-2 rounded-xl bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={15} /> Reply</button>
+                </form>
+              </div>
+            )}
+          </div>
+
           <div className="rounded-3xl border border-[#dce3e7] bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold">My submissions</h2>
             <p className="mt-1 text-sm text-[#687987]">Track each property's review status.</p>

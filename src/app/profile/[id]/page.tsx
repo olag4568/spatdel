@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -34,7 +34,7 @@ function roleLabel(role: Role) {
   return "SPATDEL member";
 }
 
-export default function PublicProfilePage() {
+function PublicProfileContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -214,5 +214,14 @@ export default function PublicProfilePage() {
         )}
       </section>
     </main>
+  );
+}
+
+
+export default function PublicProfilePage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-[#f8f7f2] text-[#102f46]">Loading profile...</main>}>
+      <PublicProfileContent />
+    </Suspense>
   );
 }

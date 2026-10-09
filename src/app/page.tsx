@@ -377,6 +377,12 @@ export default function Home() {
     router.push("/account");
   }
 
+  function goToMessages() {
+    setProfileMenu(false);
+    setMobileMenu(false);
+    router.push("/messages");
+  }
+
   function goToAdminDashboard() {
     setProfileMenu(false);
     setMobileMenu(false);
@@ -1183,6 +1189,14 @@ export default function Home() {
                       My Dashboard
                     </button>
 
+                    <button
+                      onClick={goToMessages}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
+                    >
+                      <MessageSquare size={15} />
+                      Messages
+                    </button>
+
                     {userRole ===
                       "admin" && (
                       <button
@@ -1332,6 +1346,14 @@ export default function Home() {
                       size={16}
                     />
                     My Dashboard
+                  </button>
+
+                  <button
+                    onClick={goToMessages}
+                    className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"
+                  >
+                    <MessageSquare size={16} />
+                    Messages
                   </button>
 
                   {userRole ===

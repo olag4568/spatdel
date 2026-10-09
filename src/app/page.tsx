@@ -34,6 +34,7 @@ type Property = {
   verified?: boolean | null;
   location?: string | null;
   type?: string | null;
+  listing_purpose?: "rent" | "sale" | null;
   flood_risk?: string | null;
   power_hours?: string | null;
   description?: string | null;
@@ -1948,8 +1949,7 @@ export default function Home() {
                       </span>
 
                       <span className="absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-1 text-[8px] font-bold text-white backdrop-blur">
-                        {property.type ||
-                          `${property.beds} BED`}
+                        {property.listing_purpose === "sale" ? "FOR SALE" : property.listing_purpose === "rent" ? "FOR RENT" : property.type || `${property.beds} BED`}
                       </span>
 
                       <button

@@ -67,6 +67,7 @@ function MessagesContent() {
   const [conversations, setConversations] = useState<ConversationView[]>([]);
   const [activeConversationId, setActiveConversationId] = useState("");
   const [newChatTargetId, setNewChatTargetId] = useState("");
+  const [pendingPropertyId, setPendingPropertyId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
@@ -212,14 +213,15 @@ function MessagesContent() {
   // Allow a profile's Message button to open this page with a target user.
   useEffect(() => {
     const targetId = searchParams.get("user");
-    if (!targetId || !currentUserId || handledProfileTarget === targetId) return;
+    const propertyId = searchParams.get("property");
+    if (!targetId || !currentUserId || handledProfileTarget === `${targetId}:${propertyId || ""}`) return;
 
     let active = true;
     async function openTarget() {
       const existing = people.find((person) => person.id === targetId);
       if (existing) {
-        setHandledProfileTarget(targetId);
-        choosePerson(existing);
+        setHandledProfileTarget(`${targetId}:${propertyId || ""}`);
+        choosePerson(existing, propertyId);
         router.replace("/messages");
         return;
       }
@@ -239,8 +241,8 @@ function MessagesContent() {
 
       setPeople((current) => current.some((person) => person.id === target.id) ? current : [...current, target]);
       setDirectoryPeople((current) => current.some((person) => person.id === target.id) ? current : [...current, target]);
-      setHandledProfileTarget(targetId);
-      choosePerson(target);
+      setHandledProfileTarget(`${targetId}:${propertyId || ""}`);
+      choosePerson(target, propertyId);
       router.replace("/messages");
     }
 
@@ -387,11 +389,14 @@ function MessagesContent() {
     await loadConversations(currentUserId);
   }
 
-  function choosePerson(person: Profile) {
-    const existing = conversations.find((chat) => chat.otherUserId === person.id && !chat.property_id);
+  function choosePerson(person: Profile, propertyId: string | null = null) {
+    const existing = conversations.find(
+      (chat) => chat.otherUserId === person.id && (chat.property_id || null) === propertyId
+    );
     setDirectoryOpen(false);
     setSearch("");
     setError("");
+    setPendingPropertyId(propertyId);
     if (existing) {
       setNewChatTargetId("");
       setActiveConversationId(existing.id);
@@ -423,7 +428,7 @@ function MessagesContent() {
 
         const { data, error: startError } = await supabase.rpc("spatdel_start_chat", {
           target_user_id: newChatTargetId,
-          related_property_id: null,
+          related_property_id: pendingPropertyId,
           first_message: body,
         });
 
@@ -431,6 +436,7 @@ function MessagesContent() {
         conversationId = data as string;
         setActiveConversationId(conversationId);
         setNewChatTargetId("");
+        setPendingPropertyId(null);
       } else {
         const { data, error: insertError } = await supabase
           .from("spatdel_chat_messages")
@@ -529,7 +535,7 @@ function MessagesContent() {
             ) : (
               <div className="max-h-[65vh] overflow-y-auto p-2">
                 {conversations.map((chat) => (
-                  <button key={chat.id} onClick={() => { setNewChatTargetId(""); setActiveConversationId(chat.id); setDirectoryOpen(false); setError(""); }} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left transition ${activeConversationId === chat.id ? "bg-[#e8f4ed]" : "hover:bg-[#f5f7f8]"}`}>
+                  <button key={chat.id} onClick={() => { setNewChatTargetId(""); setPendingPropertyId(chat.property_id); setActiveConversationId(chat.id); setDirectoryOpen(false); setError(""); }} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left transition ${activeConversationId === chat.id ? "bg-[#e8f4ed]" : "hover:bg-[#f5f7f8]"}`}>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4]">{people.find((person) => person.id === chat.otherUserId)?.avatar_url ? <img src={people.find((person) => person.id === chat.otherUserId)?.avatar_url ?? ""} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={21} />}</div>
                     <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{chat.otherName}</p><span className="text-[10px] text-[#8a969f]">{new Date(chat.updated_at).toLocaleDateString("en-NG")}</span></div><p className="mt-1 text-xs font-semibold text-[#087b62]">{roleLabel(chat.otherRole)}</p><p className="mt-1 truncate text-xs text-[#8a969f]">{chat.title || "Direct message"}</p></div>
                   </button>
@@ -544,7 +550,7 @@ function MessagesContent() {
             {(activeChat || newChatPerson) ? (
               <>
                 <div className="flex items-center gap-3 border-b border-[#edf0f2] px-4 py-4 sm:px-6">
-                  <button onClick={() => { setActiveConversationId(""); setNewChatTargetId(""); setDirectoryOpen(true); }} className="rounded-lg p-2 hover:bg-[#f5f7f8] md:hidden" aria-label="Back to chats"><ArrowLeft size={17} /></button>
+                  <button onClick={() => { setActiveConversationId(""); setNewChatTargetId(""); setPendingPropertyId(null); setDirectoryOpen(true); }} className="rounded-lg p-2 hover:bg-[#f5f7f8] md:hidden" aria-label="Back to chats"><ArrowLeft size={17} /></button>
                   <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4] hover:ring-2 hover:ring-[#087b62]" aria-label="Open this person's profile">{activeOther?.avatar_url ? <img src={activeOther.avatar_url} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={22} />}</button>
                   <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="min-w-0 flex-1 text-left">
                     <p className="truncate font-bold hover:underline">{activeChat?.otherName ?? displayName(newChatPerson)}</p><p className="mt-0.5 truncate text-xs text-[#687987]">{activeOther?.username ? `@${activeOther.username}` : roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")}</p><p className="mt-0.5 text-xs font-semibold text-[#087b62]">{roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")} · View profile</p>

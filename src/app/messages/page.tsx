@@ -62,6 +62,7 @@ export default function MessagesPage() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
   const [people, setPeople] = useState<Profile[]>([]);
+  const [directoryPeople, setDirectoryPeople] = useState<Profile[]>([]);
   const [conversations, setConversations] = useState<ConversationView[]>([]);
   const [activeConversationId, setActiveConversationId] = useState("");
   const [newChatTargetId, setNewChatTargetId] = useState("");
@@ -155,7 +156,9 @@ export default function MessagesPage() {
       }
 
       setMyProfile(myResult.data as Profile);
-      setPeople((peopleResult.data ?? []) as Profile[]);
+      const loadedPeople = (peopleResult.data ?? []) as Profile[];
+      setPeople(loadedPeople);
+      setDirectoryPeople(loadedPeople);
       setLoading(false);
 
       // loadConversations uses the latest profile directory, so load after setting it too.
@@ -223,7 +226,7 @@ export default function MessagesPage() {
         return;
       }
 
-      setPeople((data ?? []) as Profile[]);
+      setDirectoryPeople((data ?? []) as Profile[]);
     }, 250);
 
     return () => {
@@ -420,7 +423,7 @@ export default function MessagesPage() {
   const activeOther = activeChat
     ? people.find((person) => person.id === activeChat.otherUserId)
     : newChatPerson;
-  const filteredPeople = people.filter((person) => {
+  const filteredPeople = directoryPeople.filter((person) => {
     const query = search.trim().toLowerCase();
     const matchesName = !query || displayName(person).toLowerCase().includes(query);
     const matchesRole = roleFilter === "all" || person.role.toLowerCase() === roleFilter;

@@ -163,6 +163,25 @@ $$;
 revoke all on function public.spatdel_start_chat(uuid, uuid, text) from public;
 grant execute on function public.spatdel_start_chat(uuid, uuid, text) to authenticated;
 
+create or replace function public.spatdel_touch_conversation_updated_at()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  update public.spatdel_chat_conversations
+  set updated_at = now()
+  where id = new.conversation_id;
+  return new;
+end;
+$;
+
+drop trigger if exists spatdel_touch_conversation_updated_at on public.spatdel_chat_messages;
+create trigger spatdel_touch_conversation_updated_at
+after insert on public.spatdel_chat_messages
+for each row execute function public.spatdel_touch_conversation_updated_at();
+
 -- Additive review fields for agent/landlord submissions. Existing verified listings
 -- remain approved; existing unverified listings become pending.
 alter table public.properties

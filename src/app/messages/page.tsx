@@ -239,6 +239,8 @@ function MessagesContent() {
     return () => { active = false; };
   }, [router, supabase]);
 
+  const activeChat = conversations.find((chat) => chat.id === activeConversationId);
+
   // Load the property linked to this conversation so both sides can see exactly
   // which listing the chat is about.
   const linkedPropertyId = activeChat?.property_id ?? pendingPropertyId;
@@ -569,7 +571,6 @@ function MessagesContent() {
     }
   }
 
-  const activeChat = conversations.find((chat) => chat.id === activeConversationId);
   const newChatPerson = people.find((person) => person.id === newChatTargetId);
   const activeOther = activeChat
     ? people.find((person) => person.id === activeChat.otherUserId)

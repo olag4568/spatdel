@@ -205,6 +205,24 @@ create trigger spatdel_touch_conversation_updated_at
 after insert on public.spatdel_chat_messages
 for each row execute function public.spatdel_touch_conversation_updated_at();
 
+-- Store whether each property is offered for rent or for sale.
+alter table public.properties
+  add column if not exists listing_purpose text not null default 'rent'
+  check (listing_purpose in ('rent', 'sale'));
+
+-- Only admins can delete a listing from the admin dashboard.
+drop policy if exists "Admins can delete properties" on public.properties;
+create policy "Admins can delete properties"
+on public.properties for delete to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles p
+    where p.id = (select auth.uid())
+      and p.role = 'admin'
+  )
+);
+
 -- Additive review fields for agent/landlord submissions. Existing verified listings
 -- remain approved; existing unverified listings become pending.
 alter table public.properties

@@ -670,7 +670,7 @@ export default function AccountPage() {
 
   function getDisplayedPrice(price: string) {
     if (userRole !== "tenant" || !rewardAmount) return price;
-    const match = price.match(/(?:₦|NGN\\s*)?\\s*([\\d,]+(?:\\.\\d+)?)/i);
+    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
     if (!match) return price;
     const originalAmount = Number(match[1].replace(/,/g, ""));
     if (!Number.isFinite(originalAmount)) return price;
@@ -680,7 +680,7 @@ export default function AccountPage() {
 
   function getOriginalPrice(price: string) {
     if (userRole !== "tenant" || !rewardAmount) return null;
-    const match = price.match(/(?:₦|NGN\\s*)?\\s*([\\d,]+(?:\\.\\d+)?)/i);
+    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
     if (!match) return null;
     const originalAmount = Number(match[1].replace(/,/g, ""));
     if (!Number.isFinite(originalAmount)) return null;

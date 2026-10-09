@@ -31,6 +31,7 @@ import {
   Clock3,
   Eye,
   XCircle,
+  Send,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -71,6 +72,8 @@ type Enquiry = {
   property?: Property;
 };
 
+type EnquiryMessage = { id: string; enquiry_id: string; sender_id: string; message: string; created_at: string; read_at?: string | null };
+
 export default function AccountPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -106,6 +109,11 @@ export default function AccountPage() {
   const [loadingEnquiries, setLoadingEnquiries] =
     useState(true);
   const [enquiryError, setEnquiryError] = useState("");
+  const [selectedEnquiryId, setSelectedEnquiryId] = useState("");
+  const [enquiryMessages, setEnquiryMessages] = useState<EnquiryMessage[]>([]);
+  const [enquiryReplyDraft, setEnquiryReplyDraft] = useState("");
+  const [loadingEnquiryMessages, setLoadingEnquiryMessages] = useState(false);
+  const [sendingEnquiryReply, setSendingEnquiryReply] = useState(false);
 
   // PROFILE EDITING
   const [editingProfile, setEditingProfile] =
@@ -425,6 +433,48 @@ export default function AccountPage() {
       mounted = false;
     };
   }, [user, supabase]);
+
+  async function openTenantEnquiry(enquiry: Enquiry) {
+    setSelectedEnquiryId(enquiry.id);
+    setEnquiryReplyDraft("");
+    setEnquiryError("");
+    setLoadingEnquiryMessages(true);
+    const { data, error } = await supabase
+      .from("property_messages")
+      .select("id, enquiry_id, sender_id, message, created_at, read_at")
+      .eq("enquiry_id", enquiry.id)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("Failed to load enquiry conversation:", error);
+      setEnquiryError("Conversation could not load. Check the property messaging database policies.");
+      setEnquiryMessages([]);
+    } else {
+      setEnquiryMessages((data ?? []) as EnquiryMessage[]);
+    }
+    setLoadingEnquiryMessages(false);
+  }
+
+  async function sendTenantEnquiryReply(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const message = enquiryReplyDraft.trim();
+    if (!user?.id || !selectedEnquiryId || !message || sendingEnquiryReply) return;
+    setEnquiryError("");
+    setSendingEnquiryReply(true);
+    const { data, error } = await supabase
+      .from("property_messages")
+      .insert({ enquiry_id: selectedEnquiryId, sender_id: user.id, message })
+      .select("id, enquiry_id, sender_id, message, created_at, read_at")
+      .single();
+    if (error) {
+      console.error("Failed to send tenant enquiry reply:", error);
+      setEnquiryError("Reply could not be sent. Check tenant insert permissions for property_messages.");
+      setSendingEnquiryReply(false);
+      return;
+    }
+    setEnquiryMessages((current) => [...current, data as EnquiryMessage]);
+    setEnquiryReplyDraft("");
+    setSendingEnquiryReply(false);
+  }
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -1387,20 +1437,33 @@ export default function AccountPage() {
                             )}
                           </p>
 
-                          <button
-                            onClick={goHome}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#102f46] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#183d57]"
-                          >
-                            View Home
-                            <ChevronRight
-                              size={14}
-                            />
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button onClick={() => void openTenantEnquiry(enquiry)} className="inline-flex items-center gap-1.5 rounded-full bg-[#087b62] px-4 py-2 text-xs font-bold text-white"><MessageSquare size={14} /> View conversation</button>
+                            <button onClick={goHome} className="inline-flex items-center gap-1.5 rounded-full bg-[#102f46] px-4 py-2 text-xs font-bold text-white">View Home <ChevronRight size={14} /></button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {selectedEnquiryId && (
+              <div className="mt-6 overflow-hidden rounded-2xl border border-[#dce3e7] bg-white">
+                <div className="flex items-center justify-between gap-3 border-b border-[#edf0f2] px-4 py-3">
+                  <div><h3 className="font-bold">Enquiry conversation</h3><p className="text-xs text-[#687987]">Follow up with the agent or landlord.</p></div>
+                  <button type="button" onClick={() => { setSelectedEnquiryId(""); setEnquiryMessages([]); }} className="rounded-full border border-[#d5dde2] px-3 py-1.5 text-xs font-bold">Close</button>
+                </div>
+                <div className="max-h-80 space-y-3 overflow-y-auto bg-[#fafbfb] p-4">
+                  {loadingEnquiryMessages ? <p className="py-6 text-center text-sm text-[#687987]">Loading conversation...</p> : enquiryMessages.length === 0 ? <p className="py-6 text-center text-sm text-[#687987]">No replies yet. Send a follow-up below.</p> : enquiryMessages.map((item) => {
+                    const own = item.sender_id === user?.id;
+                    return <div key={item.id} className={"flex " + (own ? "justify-end" : "justify-start")}><div className={"max-w-[90%] rounded-2xl px-4 py-3 " + (own ? "bg-[#102f46] text-white" : "border border-[#dce3e7] bg-white text-[#102f46]")}><p className="mb-1 text-[10px] font-bold">{own ? "You" : "Agent / landlord"}</p><p className="whitespace-pre-wrap break-words text-sm leading-6">{item.message}</p><p className="mt-2 text-right text-[10px] opacity-70">{new Date(item.created_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}</p></div></div>;
+                  })}
+                </div>
+                <form onSubmit={sendTenantEnquiryReply} className="border-t border-[#edf0f2] p-3">
+                  <div className="flex items-end gap-2"><textarea value={enquiryReplyDraft} onChange={(event) => setEnquiryReplyDraft(event.target.value)} maxLength={2000} rows={2} placeholder="Write a follow-up..." className="min-h-11 flex-1 resize-y rounded-xl border border-[#d5dde2] px-3 py-2 text-sm outline-none focus:border-[#087b62]" /><button type="submit" disabled={!enquiryReplyDraft.trim() || sendingEnquiryReply || loadingEnquiryMessages} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#087b62] text-white disabled:opacity-50" aria-label="Send enquiry reply">{sendingEnquiryReply ? <span className="animate-pulse">…</span> : <Send size={17} />}</button></div>
+                </form>
               </div>
             )}
           </div>

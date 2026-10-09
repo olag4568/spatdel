@@ -85,6 +85,10 @@ export default function AccountPage() {
   const [rewardAmount, setRewardAmount] = useState<number | null>(null);
   const [rewardSpunAt, setRewardSpunAt] = useState<string | null>(null);
   const [rewardLoading, setRewardLoading] = useState(false);
+  const [spinningReward, setSpinningReward] = useState(false);
+  const [rewardWheelRotation, setRewardWheelRotation] = useState(0);
+  const [rewardActionError, setRewardActionError] = useState("");
+  const [rewardActionNotice, setRewardActionNotice] = useState("");
 
   // SAVED PROPERTIES
   const [savedProperties, setSavedProperties] = useState<
@@ -616,6 +620,54 @@ export default function AccountPage() {
     );
   }
 
+  async function spinTenantReward() {
+    if (spinningReward || rewardLoading || rewardAmount !== null || rewardSpunAt) return;
+
+    setRewardActionError("");
+    setRewardActionNotice("");
+
+    const { data, error } = await supabase.rpc("claim_tenant_spin_reward");
+
+    if (error) {
+      console.error("Failed to claim lifetime spin reward:", error);
+      setRewardActionError(
+        error.message?.includes("Only tenant")
+          ? "Only tenant accounts can claim this reward."
+          : "Your spin could not be saved. Please try again."
+      );
+      return;
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    const reward = Number(result?.reward_amount);
+    const spunAt = result?.spun_at ?? null;
+
+    if (![5000, 10000, 15000, 20000, 25000, 30000].includes(reward) || !spunAt) {
+      setRewardActionError("We couldn't confirm your reward. Refresh and check your reward status.");
+      return;
+    }
+
+    setRewardAmount(reward);
+    setRewardSpunAt(spunAt);
+
+    if (result?.already_spun) {
+      setRewardActionNotice("Your lifetime spin was already used. Your saved discount has been restored.");
+      return;
+    }
+
+    setSpinningReward(true);
+    const rewardIndex = [5000, 10000, 15000, 20000, 25000, 30000].indexOf(reward);
+    setRewardWheelRotation((current) => current + 1440 + ((360 - rewardIndex * 60) % 360));
+
+    window.setTimeout(() => {
+      setSpinningReward(false);
+      setRewardActionNotice(
+        "You won ₦" + reward.toLocaleString("en-NG") +
+        " off every available house's displayed price."
+      );
+    }, 1900);
+  }
+
   function goToSpin() {
     router.push("/");
 
@@ -1102,29 +1154,75 @@ export default function AccountPage() {
               </div>
               <h2 className="text-xl font-bold">One-Time Rent Discount</h2>
               <p className="mt-2 text-sm leading-6 text-[#687987]">
-                You can spin once in your lifetime. Your naira reward is saved permanently and reduces every available house's displayed price.
+                Spin once in your lifetime. Your naira reward is saved permanently and reduces every available house's displayed price.
               </p>
-              <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#102f46] p-5 text-white">
-                <div>
+
+              <div className="mt-6 grid items-center gap-6 sm:grid-cols-2">
+                <div className="flex flex-col items-center">
+                  <div
+                    className="relative h-52 w-52 rounded-full border-[6px] border-[#102f46] shadow-lg"
+                    style={{
+                      transform: `rotate(${rewardWheelRotation}deg)`,
+                      transition: spinningReward
+                        ? "transform 1.8s cubic-bezier(0.12, 0.8, 0.18, 1)"
+                        : "none",
+                    }}
+                  >
+                    <div
+                      className="absolute inset-1 rounded-full"
+                      style={{
+                        background: "conic-gradient(from -30deg, #087b62 0deg 60deg, #f05a00 60deg 120deg, #102f46 120deg 180deg, #19b87a 180deg 240deg, #f05a00 240deg 300deg, #155e75 300deg 360deg)",
+                      }}
+                    />
+                    <span className="absolute left-1/2 top-[10%] -translate-x-1/2 text-xs font-black text-white">₦5K</span>
+                    <span className="absolute right-[4%] top-[29%] rotate-45 text-xs font-black text-white">₦10K</span>
+                    <span className="absolute right-[5%] bottom-[25%] -rotate-45 text-xs font-black text-white">₦15K</span>
+                    <span className="absolute bottom-[8%] left-1/2 -translate-x-1/2 text-xs font-black text-white">₦20K</span>
+                    <span className="absolute bottom-[25%] left-[3%] rotate-45 text-xs font-black text-white">₦25K</span>
+                    <span className="absolute left-[4%] top-[29%] -rotate-45 text-xs font-black text-white">₦30K</span>
+                    <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-[#071b18]" />
+                  </div>
+                  <button
+                    onClick={spinTenantReward}
+                    disabled={spinningReward || rewardLoading || rewardAmount !== null || Boolean(rewardSpunAt)}
+                    className="mt-4 rounded-full bg-[#102f46] px-6 py-3 text-sm font-black text-white transition hover:bg-[#174763] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {spinningReward
+                      ? "SPINNING..."
+                      : rewardLoading
+                        ? "CHECKING..."
+                        : rewardAmount !== null || rewardSpunAt
+                          ? "SPIN USED"
+                          : "SPIN ONCE"}
+                  </button>
+                </div>
+
+                <div className="rounded-2xl bg-[#102f46] p-5 text-white">
                   <p className="text-xs uppercase tracking-wider text-[#b9c8d2]">Your saved reward</p>
-                  <p className="mt-1 text-2xl font-bold">
+                  <p className="mt-2 text-3xl font-black text-[#e9b949]">
                     {rewardAmount !== null
                       ? "₦" + rewardAmount.toLocaleString("en-NG")
                       : rewardLoading ? "Loading..." : "Not claimed"}
                   </p>
+                  <p className="mt-2 text-xs leading-5 text-[#d3dee5]">
+                    {rewardAmount !== null
+                      ? "Your discount is active on every available house's displayed price."
+                      : "Choose one spin to receive a permanent discount on every available house."}
+                  </p>
                   {rewardSpunAt && (
-                    <p className="mt-1 text-[10px] text-[#b9c8d2]">
+                    <p className="mt-3 text-[10px] text-[#b9c8d2]">
                       Claimed {new Date(rewardSpunAt).toLocaleDateString("en-NG")}
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={goToSpin}
-                  className="rounded-full bg-[#e9b949] px-5 py-2.5 text-sm font-bold text-[#102f46] transition hover:bg-[#f1c75d]"
-                >
-                  {rewardAmount !== null ? "View Discount" : "Go to Spin"}
-                </button>
               </div>
+
+              {rewardActionError && (
+                <p role="alert" className="mt-4 text-xs font-semibold text-red-600">{rewardActionError}</p>
+              )}
+              {rewardActionNotice && (
+                <p role="status" className="mt-4 text-xs font-semibold text-[#087b62]">{rewardActionNotice}</p>
+              )}
             </div>
           )}
 

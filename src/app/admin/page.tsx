@@ -50,6 +50,10 @@ type Property = {
   power_hours?: string | null;
   description?: string | null;
   created_at?: string | null;
+  approval_status?: "pending" | "approved" | "rejected" | "changes_requested" | null;
+  submitted_by?: string | null;
+  review_note?: string | null;
+  images?: string[] | null;
 };
 
 export default function AdminDashboard() {
@@ -139,7 +143,7 @@ export default function AdminDashboard() {
       await supabase
         .from("properties")
         .select(
-          "id, title, price, beds, baths, sqm, image, flood, power, verified, location, type, flood_risk, power_hours, description, created_at"
+          "id, title, price, beds, baths, sqm, image, images, flood, power, verified, approval_status, submitted_by, reviewed_by, reviewed_at, review_note, location, type, flood_risk, power_hours, description, created_at"
         )
         .order("created_at", { ascending: false });
 
@@ -224,6 +228,9 @@ export default function AdminDashboard() {
       .from("properties")
       .update({
         verified: nextVerified,
+        approval_status: nextVerified ? "approved" : "pending",
+        reviewed_by: nextVerified ? profile?.id ?? null : null,
+        reviewed_at: nextVerified ? new Date().toISOString() : null,
       })
       .eq("id", property.id);
 
@@ -241,6 +248,9 @@ export default function AdminDashboard() {
           ? {
               ...item,
               verified: nextVerified,
+              approval_status: nextVerified ? "approved" : "pending",
+              reviewed_by: nextVerified ? profile?.id ?? null : null,
+              reviewed_at: nextVerified ? new Date().toISOString() : null,
             }
           : item
       )
@@ -1148,6 +1158,18 @@ export default function AdminDashboard() {
             </div>
 
             <div className="p-5 sm:p-7">
+              {Array.isArray(selectedProperty.images) && selectedProperty.images.filter(Boolean).length > 1 && (
+                <div className="mb-6">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#71808a]">Submitted photos</p>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {selectedProperty.images.filter(Boolean).map((photoUrl, index) => (
+                      <a key={photoUrl + index} href={photoUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-[#dce3e7]">
+                        <img src={photoUrl} alt={`Submitted property photo ${index + 1}`} className="h-28 w-full object-cover transition hover:scale-[1.02]" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col justify-between gap-3 sm:flex-row">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-[#087b62]">

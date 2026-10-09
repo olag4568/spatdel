@@ -43,8 +43,8 @@ create policy "Tenants can view their own rewards"
   to authenticated
   using (auth.uid() = user_id);
 
-revoke insert, update, delete on public.tenant_rewards from anon, authenticated;
-grant select on public.tenant_rewards to authenticated;
+revoke all on table public.tenant_rewards from public, anon, authenticated;
+grant select on table public.tenant_rewards to authenticated;
 
 create or replace function public.claim_tenant_spin_reward()
 returns table (
@@ -54,7 +54,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = ''
 as $$
 declare
   v_user_id uuid := auth.uid();

@@ -1481,7 +1481,9 @@ export default function Home() {
                   </div>
 
                   <p className="mt-2 text-sm font-black">
-                    ₦1,200,000 / yr
+                    {properties[0]
+                      ? getDisplayedPrice(properties[0].price)
+                      : "₦1,200,000"} / yr
                   </p>
 
                   <div className="mt-3 flex items-center gap-2 text-[9px] text-[#63717a]">
@@ -1572,7 +1574,6 @@ export default function Home() {
 
       {/* SPIN & EARN — visible to guests and tenants only */}
       {(!authLoading && (!user || (!roleLoading && userRole === "tenant"))) && (
-      {/* SPIN & EARN */}
       <section
         id="spin"
         className="mx-auto max-w-[1280px] px-5 py-24 sm:px-8"

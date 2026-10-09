@@ -1087,14 +1087,14 @@ export default function Home() {
               Community Pulse
             </button>
 
-            <button
-              onClick={() =>
-                scrollToSection("spin")
-              }
-              className="text-xs font-bold transition hover:text-[#087b62]"
-            >
-              Spin & Earn
-            </button>
+            {(!user || (!roleLoading && userRole === "tenant")) && (
+              <button
+                onClick={() => scrollToSection("spin")}
+                className="text-xs font-bold transition hover:text-[#087b62]"
+              >
+                Spin & Earn
+              </button>
+            )}
 
             <button
               onClick={() =>
@@ -1260,14 +1260,14 @@ export default function Home() {
                 Community Pulse
               </button>
 
-              <button
-                onClick={() =>
-                  scrollToSection("spin")
-                }
-                className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white"
-              >
-                Spin & Earn
-              </button>
+              {(!user || (!roleLoading && userRole === "tenant")) && (
+                <button
+                  onClick={() => scrollToSection("spin")}
+                  className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white"
+                >
+                  Spin & Earn
+                </button>
+              )}
 
               <button
                 onClick={() =>

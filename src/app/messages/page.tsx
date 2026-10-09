@@ -15,6 +15,11 @@ import {
   Send,
   ShieldCheck,
   Users,
+  X,
+  MapPin,
+  BedDouble,
+  Bath,
+  Maximize2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,6 +45,25 @@ type ConversationView = ConversationRow & {
   otherUserId: string;
   otherName: string;
   otherRole: Role;
+};
+
+type PropertyDetails = {
+  id: string;
+  title: string;
+  price: string | null;
+  image: string | null;
+  location: string | null;
+  beds: number | null;
+  baths: number | null;
+  sqm: string | number | null;
+  type: string | null;
+  listing_purpose: "rent" | "sale" | null;
+  description: string | null;
+  flood: string | null;
+  power: string | null;
+  flood_risk: string | null;
+  power_hours: string | null;
+  verified: boolean | null;
 };
 
 function roleLabel(role: Role) {
@@ -80,6 +104,9 @@ function MessagesContent() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [linkedProperty, setLinkedProperty] = useState<PropertyDetails | null>(null);
+  const [propertyDetailsOpen, setPropertyDetailsOpen] = useState(false);
+  const [propertyLoading, setPropertyLoading] = useState(false);
   const lastUnreadCount = useRef<number | null>(null);
 
   const loadConversations = useCallback(async (userId: string) => {
@@ -211,6 +238,40 @@ function MessagesContent() {
     initialise();
     return () => { active = false; };
   }, [router, supabase]);
+
+  // Load the property linked to this conversation so both sides can see exactly
+  // which listing the chat is about.
+  const linkedPropertyId = activeChat?.property_id ?? pendingPropertyId;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadLinkedProperty() {
+      setLinkedProperty(null);
+      setPropertyDetailsOpen(false);
+      if (!linkedPropertyId) {
+        setPropertyLoading(false);
+        return;
+      }
+
+      setPropertyLoading(true);
+      const { data, error: propertyError } = await supabase
+        .from("properties")
+        .select("id, title, price, image, location, beds, baths, sqm, type, listing_purpose, description, flood, power, flood_risk, power_hours, verified")
+        .eq("id", linkedPropertyId)
+        .maybeSingle();
+
+      if (!active) return;
+      if (propertyError) {
+        console.error("Could not load the linked property:", propertyError);
+      }
+      setLinkedProperty((data ?? null) as PropertyDetails | null);
+      setPropertyLoading(false);
+    }
+
+    void loadLinkedProperty();
+    return () => { active = false; };
+  }, [linkedPropertyId, supabase]);
 
   // Allow a profile's Message button to open this page with a target user.
   useEffect(() => {
@@ -606,6 +667,34 @@ function MessagesContent() {
                   <span className="hidden items-center gap-1 rounded-full bg-[#f5f7f8] px-3 py-1.5 text-[10px] font-bold text-[#687987] sm:inline-flex"><ShieldCheck size={13} /> Role verified from profile</span>
                 </div>
 
+                {linkedPropertyId && (
+                  <div className="border-b border-[#edf0f2] bg-white px-4 py-3 sm:px-6">
+                    {propertyLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-[#687987]"><LoaderCircle size={15} className="animate-spin" /> Loading property details...</div>
+                    ) : linkedProperty ? (
+                      <button
+                        type="button"
+                        onClick={() => setPropertyDetailsOpen(true)}
+                        className="flex w-full items-center gap-3 rounded-2xl border border-[#dce3e7] bg-[#fafbfb] p-3 text-left transition hover:border-[#087b62] hover:bg-[#f2f8f5]"
+                        aria-label={`View full details for ${linkedProperty.title}`}
+                      >
+                        <div className="h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-[#e8f0f4]">
+                          {linkedProperty.image ? <img src={linkedProperty.image} alt={linkedProperty.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-xs text-[#687987]">No photo</div>}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#087b62]">Enquired property</p>
+                          <p className="mt-1 truncate text-sm font-bold text-[#102f46]">{linkedProperty.title}</p>
+                          <p className="mt-1 truncate text-xs text-[#687987]"><MapPin size={12} className="mr-1 inline" />{linkedProperty.location || "Location not provided"}</p>
+                          <p className="mt-1 text-sm font-extrabold text-[#f05a00]">{linkedProperty.price || "Price not provided"}{linkedProperty.listing_purpose === "rent" ? " · Rent" : linkedProperty.listing_purpose === "sale" ? " · For sale" : ""}</p>
+                        </div>
+                        <span className="hidden shrink-0 items-center gap-1 text-xs font-bold text-[#087b62] sm:inline-flex">Full details <ArrowLeft size={14} className="rotate-180" /></span>
+                      </button>
+                    ) : (
+                      <p className="text-xs text-[#687987]">This conversation is linked to a property, but its details could not be loaded.</p>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex-1 space-y-4 overflow-y-auto bg-[#fafbfb] p-4 sm:p-6">
                   {loadingMessages ? <div className="flex justify-center py-10"><LoaderCircle className="animate-spin text-[#087b62]" size={24} /></div> : messages.length === 0 ? <div className="flex h-full min-h-48 flex-col items-center justify-center text-center"><MessageCircle size={32} className="text-[#9aa7af]" /><p className="mt-3 font-bold">Start the conversation</p><p className="mt-1 max-w-xs text-xs leading-5 text-[#687987]">Be respectful and confirm property details before making payments.</p></div> : messages.map((message) => {
                     const own = message.sender_id === currentUserId;
@@ -632,6 +721,41 @@ function MessagesContent() {
             )}
           </div>
         </div>
+        {propertyDetailsOpen && linkedProperty && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#102f46]/70 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="linked-property-title" onClick={() => setPropertyDetailsOpen(false)}>
+            <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#edf0f2] bg-white/95 px-5 py-4 backdrop-blur">
+                <div><p className="text-xs font-bold uppercase tracking-wide text-[#087b62]">Property details</p><p className="text-sm text-[#687987]">The listing attached to this conversation</p></div>
+                <button type="button" onClick={() => setPropertyDetailsOpen(false)} className="rounded-full p-2 hover:bg-[#f5f7f8]" aria-label="Close property details"><X size={20} /></button>
+              </div>
+              <div className="p-4 sm:p-6">
+                <div className="overflow-hidden rounded-2xl bg-[#e8f0f4]">
+                  {linkedProperty.image ? <img src={linkedProperty.image} alt={linkedProperty.title} className="max-h-[360px] w-full object-cover" /> : <div className="flex h-48 items-center justify-center text-sm text-[#687987]">No property photo available</div>}
+                </div>
+                <div className="mt-5 flex flex-wrap items-start justify-between gap-3">
+                  <div><h2 id="linked-property-title" className="text-xl font-extrabold text-[#102f46] sm:text-2xl">{linkedProperty.title}</h2><p className="mt-2 text-sm text-[#687987]"><MapPin size={15} className="mr-1 inline" />{linkedProperty.location || "Location not provided"}</p></div>
+                  <p className="text-lg font-extrabold text-[#f05a00]">{linkedProperty.price || "Price not provided"}</p>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-[#f5f7f8] p-3"><p className="text-xs text-[#687987]">Listing</p><p className="mt-1 font-bold">{linkedProperty.listing_purpose === "rent" ? "For rent" : linkedProperty.listing_purpose === "sale" ? "For sale" : "Not specified"}</p></div>
+                  <div className="rounded-xl bg-[#f5f7f8] p-3"><p className="text-xs text-[#687987]">Property type</p><p className="mt-1 font-bold">{linkedProperty.type || "Not specified"}</p></div>
+                  <div className="rounded-xl bg-[#f5f7f8] p-3"><p className="text-xs text-[#687987]">Verification</p><p className="mt-1 font-bold">{linkedProperty.verified ? "Verified listing" : "Not verified"}</p></div>
+                  <div className="rounded-xl bg-[#f5f7f8] p-3"><p className="text-xs text-[#687987]"><BedDouble size={14} className="mr-1 inline" />Bedrooms</p><p className="mt-1 font-bold">{linkedProperty.beds ?? "Not specified"}</p></div>
+                  <div className="rounded-xl bg-[#f5f7f8] p-3"><p className="text-xs text-[#687987]"><Bath size={14} className="mr-1 inline" />Bathrooms</p><p className="mt-1 font-bold">{linkedProperty.baths ?? "Not specified"}</p></div>
+                  <div className="rounded-xl bg-[#f5f7f8] p-3"><p className="text-xs text-[#687987]"><Maximize2 size={14} className="mr-1 inline" />Floor area</p><p className="mt-1 font-bold">{linkedProperty.sqm ? `${linkedProperty.sqm} sqm` : "Not specified"}</p></div>
+                </div>
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-xl border border-[#e1e7ea] p-4"><h3 className="font-bold">Description</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#526675]">{linkedProperty.description || "No description has been provided for this property."}</p></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#e1e7ea] p-4"><h3 className="font-bold">Flood information</h3><p className="mt-2 text-sm text-[#526675]">{linkedProperty.flood_risk || linkedProperty.flood || "Not provided"}</p></div>
+                    <div className="rounded-xl border border-[#e1e7ea] p-4"><h3 className="font-bold">Power supply</h3><p className="mt-2 text-sm text-[#526675]">{linkedProperty.power_hours || linkedProperty.power || "Not provided"}</p></div>
+                  </div>
+                </div>
+                <button type="button" onClick={() => setPropertyDetailsOpen(false)} className="mt-5 w-full rounded-xl bg-[#102f46] px-4 py-3 text-sm font-bold text-white hover:bg-[#183d57]">Back to conversation</button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </main>
   );

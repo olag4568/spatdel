@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  BadgeCheck,
   Building2,
   CircleUserRound,
   LoaderCircle,
@@ -151,7 +150,6 @@ function PublicProfileContent() {
                     <h1 className="break-words text-2xl font-black sm:text-3xl">
                       {profile.full_name?.trim() || "SPATDEL member"}
                     </h1>
-                    <BadgeCheck className="text-[#087b62]" size={22} />
                   </div>
                   {profile.username && <p className="mt-1 text-sm font-semibold text-[#687987]">@{profile.username}</p>}
                   <span className="mt-3 inline-flex rounded-full bg-[#e8f4ed] px-3 py-1.5 text-sm font-bold text-[#087b62]">
@@ -172,6 +170,43 @@ function PublicProfileContent() {
                 </div>
               </div>
             </div>
+
+            <section className="mt-6 grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+              <div className="rounded-3xl border border-[#dce3e7] bg-white p-6 shadow-sm sm:p-7">
+                <div className="mb-3 flex items-center gap-2">
+                  <CircleUserRound size={20} className="text-[#087b62]" />
+                  <h2 className="text-lg font-black">About {profile.full_name?.trim() || "this member"}</h2>
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-7 text-[#687987]">
+                  {profile.bio?.trim() || "This member hasn't added a bio yet."}
+                </p>
+              </div>
+              <div className="rounded-3xl border border-[#dce3e7] bg-white p-6 shadow-sm sm:p-7">
+                <h2 className="mb-4 text-lg font-black">Profile details</h2>
+                <dl className="space-y-4 text-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="text-[#687987]">Member type</dt>
+                    <dd className="text-right font-bold">{roleLabel(profile.role)}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="text-[#687987]">Username</dt>
+                    <dd className="break-all text-right font-bold">{profile.username ? `@${profile.username}` : "Not set"}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="text-[#687987]">Profile photo</dt>
+                    <dd className="text-right font-bold">{profile.avatar_url ? "Added" : "Not added"}</dd>
+                  </div>
+                </dl>
+                {currentUserId !== profile.id && (
+                  <button
+                    onClick={() => router.push(`/messages?user=${profile.id}`)}
+                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#066b55]"
+                  >
+                    <MessageCircle size={17} /> Message this member
+                  </button>
+                )}
+              </div>
+            </section>
 
             {(profile.role === "agent" || profile.role === "landlord") && (
               <section className="mt-8">

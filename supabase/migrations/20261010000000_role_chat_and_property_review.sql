@@ -37,36 +37,43 @@ alter table public.spatdel_chat_conversations enable row level security;
 alter table public.spatdel_chat_participants enable row level security;
 alter table public.spatdel_chat_messages enable row level security;
 
+-- SECURITY DEFINER avoids recursive RLS when policies need to check membership.
+create or replace function public.spatdel_is_chat_participant(
+  target_conversation_id uuid,
+  target_user_id uuid default auth.uid()
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select exists (
+    select 1
+    from public.spatdel_chat_participants p
+    where p.conversation_id = target_conversation_id
+      and p.user_id = target_user_id
+  );
+$;
+
+revoke all on function public.spatdel_is_chat_participant(uuid, uuid) from public;
+grant execute on function public.spatdel_is_chat_participant(uuid, uuid) to authenticated;
+
 drop policy if exists "Participants can read their conversations" on public.spatdel_chat_conversations;
 create policy "Participants can read their conversations"
 on public.spatdel_chat_conversations for select to authenticated
-using (
-  exists (
-    select 1 from public.spatdel_chat_participants p
-    where p.conversation_id = id and p.user_id = (select auth.uid())
-  )
-);
+using (public.spatdel_is_chat_participant(id, (select auth.uid())));
 
 drop policy if exists "Participants can read chat members" on public.spatdel_chat_participants;
 create policy "Participants can read chat members"
 on public.spatdel_chat_participants for select to authenticated
-using (
-  exists (
-    select 1 from public.spatdel_chat_participants mine
-    where mine.conversation_id = spatdel_chat_participants.conversation_id
-      and mine.user_id = (select auth.uid())
-  )
-);
+using (public.spatdel_is_chat_participant(conversation_id, (select auth.uid())));
 
 drop policy if exists "Participants can read chat messages" on public.spatdel_chat_messages;
 create policy "Participants can read chat messages"
 on public.spatdel_chat_messages for select to authenticated
 using (
-  exists (
-    select 1 from public.spatdel_chat_participants p
-    where p.conversation_id = spatdel_chat_messages.conversation_id
-      and p.user_id = (select auth.uid())
-  )
+  public.spatdel_is_chat_participant(spatdel_chat_messages.conversation_id, (select auth.uid()))
 );
 
 drop policy if exists "Participants can send chat messages as themselves" on public.spatdel_chat_messages;
@@ -74,11 +81,7 @@ create policy "Participants can send chat messages as themselves"
 on public.spatdel_chat_messages for insert to authenticated
 with check (
   sender_id = (select auth.uid())
-  and exists (
-    select 1 from public.spatdel_chat_participants p
-    where p.conversation_id = spatdel_chat_messages.conversation_id
-      and p.user_id = (select auth.uid())
-  )
+  and public.spatdel_is_chat_participant(spatdel_chat_messages.conversation_id, (select auth.uid()))
 );
 
 drop policy if exists "Recipients can mark messages read" on public.spatdel_chat_messages;
@@ -86,19 +89,11 @@ create policy "Recipients can mark messages read"
 on public.spatdel_chat_messages for update to authenticated
 using (
   sender_id <> (select auth.uid())
-  and exists (
-    select 1 from public.spatdel_chat_participants p
-    where p.conversation_id = spatdel_chat_messages.conversation_id
-      and p.user_id = (select auth.uid())
-  )
+  and public.spatdel_is_chat_participant(spatdel_chat_messages.conversation_id, (select auth.uid()))
 )
 with check (
   sender_id <> (select auth.uid())
-  and exists (
-    select 1 from public.spatdel_chat_participants p
-    where p.conversation_id = spatdel_chat_messages.conversation_id
-      and p.user_id = (select auth.uid())
-  )
+  and public.spatdel_is_chat_participant(spatdel_chat_messages.conversation_id, (select auth.uid()))
 );
 
 -- Clients may read their own chat membership but cannot add themselves to arbitrary chats.
@@ -233,6 +228,51 @@ create trigger spatdel_sync_property_approval_status
 before insert or update of verified, approval_status on public.properties
 for each row execute function public.spatdel_sync_property_approval_status();
 
+
+-- Agent/landlord submission access. Clients can create only pending, unverified listings
+-- attributed to themselves; moderation fields remain controlled by the admin workflow.
+drop policy if exists "Agents and landlords can submit pending properties" on public.properties;
+create policy "Agents and landlords can submit pending properties"
+on public.properties for insert to authenticated
+with check (
+  submitted_by = (select auth.uid())
+  and verified is false
+  and approval_status = 'pending'
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid())
+      and p.role in ('agent', 'landlord')
+  )
+);
+
+-- A public bucket makes approved property photos viewable by the public URL.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('property-images', 'property-images', true, 10485760, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Agents and landlords upload their own property images" on storage.objects;
+create policy "Agents and landlords upload their own property images"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'property-images'
+  and (storage.foldername(name))[1] = (select auth.uid())::text
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid())
+      and p.role in ('agent', 'landlord')
+  )
+);
+
+drop policy if exists "Agents and landlords delete their own property images" on storage.objects;
+create policy "Agents and landlords delete their own property images"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'property-images'
+  and (storage.foldername(name))[1] = (select auth.uid())::text
+);
 
 comment on column public.properties.approval_status is
   'Admin moderation state. Only approved listings should be visible in public property browsing.';

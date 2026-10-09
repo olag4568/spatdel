@@ -1,0 +1,204 @@
+-- SPATDEL: role-aware direct messaging and listing review metadata.
+-- Chat participants can include tenants, landlords, agents, admins, and future profile roles.
+-- Account role labels are read from public.profiles, never trusted from message text.
+
+create table if not exists public.spatdel_chat_conversations (
+  id uuid primary key default gen_random_uuid(),
+  created_by uuid not null references public.profiles(id) on delete cascade,
+  property_id uuid references public.properties(id) on delete set null,
+  title text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.spatdel_chat_participants (
+  conversation_id uuid not null references public.spatdel_chat_conversations(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  joined_at timestamptz not null default now(),
+  last_read_at timestamptz,
+  primary key (conversation_id, user_id)
+);
+
+create table if not exists public.spatdel_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.spatdel_chat_conversations(id) on delete cascade,
+  sender_id uuid not null references public.profiles(id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 4000),
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+
+create index if not exists spatdel_chat_participants_user_idx
+  on public.spatdel_chat_participants(user_id, conversation_id);
+create index if not exists spatdel_chat_messages_conversation_created_idx
+  on public.spatdel_chat_messages(conversation_id, created_at);
+
+alter table public.spatdel_chat_conversations enable row level security;
+alter table public.spatdel_chat_participants enable row level security;
+alter table public.spatdel_chat_messages enable row level security;
+
+drop policy if exists "Participants can read their conversations" on public.spatdel_chat_conversations;
+create policy "Participants can read their conversations"
+on public.spatdel_chat_conversations for select to authenticated
+using (
+  exists (
+    select 1 from public.spatdel_chat_participants p
+    where p.conversation_id = id and p.user_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "Participants can read chat members" on public.spatdel_chat_participants;
+create policy "Participants can read chat members"
+on public.spatdel_chat_participants for select to authenticated
+using (
+  exists (
+    select 1 from public.spatdel_chat_participants mine
+    where mine.conversation_id = conversation_id
+      and mine.user_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "Participants can read chat messages" on public.spatdel_chat_messages;
+create policy "Participants can read chat messages"
+on public.spatdel_chat_messages for select to authenticated
+using (
+  exists (
+    select 1 from public.spatdel_chat_participants p
+    where p.conversation_id = spatdel_chat_messages.conversation_id
+      and p.user_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "Participants can send chat messages as themselves" on public.spatdel_chat_messages;
+create policy "Participants can send chat messages as themselves"
+on public.spatdel_chat_messages for insert to authenticated
+with check (
+  sender_id = (select auth.uid())
+  and exists (
+    select 1 from public.spatdel_chat_participants p
+    where p.conversation_id = spatdel_chat_messages.conversation_id
+      and p.user_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "Recipients can mark messages read" on public.spatdel_chat_messages;
+create policy "Recipients can mark messages read"
+on public.spatdel_chat_messages for update to authenticated
+using (
+  sender_id <> (select auth.uid())
+  and exists (
+    select 1 from public.spatdel_chat_participants p
+    where p.conversation_id = spatdel_chat_messages.conversation_id
+      and p.user_id = (select auth.uid())
+  )
+)
+with check (
+  sender_id <> (select auth.uid())
+  and exists (
+    select 1 from public.spatdel_chat_participants p
+    where p.conversation_id = spatdel_chat_messages.conversation_id
+      and p.user_id = (select auth.uid())
+  )
+);
+
+-- Clients may read their own chat membership but cannot add themselves to arbitrary chats.
+revoke insert, update, delete on public.spatdel_chat_participants from anon, authenticated;
+grant select on public.spatdel_chat_participants to authenticated;
+grant select on public.spatdel_chat_conversations to authenticated;
+grant select, insert on public.spatdel_chat_messages to authenticated;
+revoke update on public.spatdel_chat_messages from anon, authenticated;
+grant update (read_at) on public.spatdel_chat_messages to authenticated;
+
+create or replace function public.spatdel_start_chat(
+  target_user_id uuid,
+  related_property_id uuid default null,
+  first_message text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  actor_id uuid := auth.uid();
+  new_conversation_id uuid;
+  clean_message text := nullif(trim(first_message), '');
+begin
+  if actor_id is null then
+    raise exception 'You must be signed in to start a chat.';
+  end if;
+
+  if target_user_id is null or target_user_id = actor_id then
+    raise exception 'Choose another user to chat with.';
+  end if;
+
+  if not exists (select 1 from public.profiles where id = actor_id) then
+    raise exception 'Your SPATDEL profile was not found.';
+  end if;
+
+  if not exists (select 1 from public.profiles where id = target_user_id) then
+    raise exception 'The selected user was not found.';
+  end if;
+
+  if related_property_id is not null
+     and not exists (select 1 from public.properties where id = related_property_id) then
+    raise exception 'The selected property was not found.';
+  end if;
+
+  if clean_message is not null and char_length(clean_message) > 4000 then
+    raise exception 'Messages must be 4000 characters or fewer.';
+  end if;
+
+  insert into public.spatdel_chat_conversations (created_by, property_id)
+  values (actor_id, related_property_id)
+  returning id into new_conversation_id;
+
+  insert into public.spatdel_chat_participants (conversation_id, user_id)
+  values (new_conversation_id, actor_id), (new_conversation_id, target_user_id);
+
+  if clean_message is not null then
+    insert into public.spatdel_chat_messages (conversation_id, sender_id, body)
+    values (new_conversation_id, actor_id, clean_message);
+  end if;
+
+  return new_conversation_id;
+end;
+$$;
+
+revoke all on function public.spatdel_start_chat(uuid, uuid, text) from public;
+grant execute on function public.spatdel_start_chat(uuid, uuid, text) to authenticated;
+
+-- Additive review fields for agent/landlord submissions. Existing verified listings
+-- remain approved; existing unverified listings become pending.
+alter table public.properties
+  add column if not exists approval_status text;
+
+update public.properties
+set approval_status = case when verified is true then 'approved' else 'pending' end
+where approval_status is null;
+
+alter table public.properties
+  alter column approval_status set default 'pending';
+
+alter table public.properties
+  add column if not exists submitted_by uuid references public.profiles(id) on delete set null,
+  add column if not exists reviewed_by uuid references public.profiles(id) on delete set null,
+  add column if not exists reviewed_at timestamptz,
+  add column if not exists review_note text,
+  add column if not exists images text[] not null default '{}';
+
+alter table public.properties
+  drop constraint if exists properties_approval_status_check;
+alter table public.properties
+  add constraint properties_approval_status_check
+  check (approval_status in ('pending', 'approved', 'rejected', 'changes_requested'));
+
+create index if not exists properties_approval_status_created_idx
+  on public.properties(approval_status, created_at desc);
+
+comment on column public.properties.approval_status is
+  'Admin moderation state. Only approved listings should be visible in public property browsing.';
+comment on column public.properties.submitted_by is
+  'Profile that submitted the property for admin review.';
+comment on column public.properties.images is
+  'Optional additional property image URLs; image storage/upload policies must be configured separately.';

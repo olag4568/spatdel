@@ -668,18 +668,6 @@ export default function AccountPage() {
     }, 1900);
   }
 
-  function goToSpin() {
-    router.push("/");
-
-    window.setTimeout(() => {
-      document
-        .getElementById("spin")
-        ?.scrollIntoView({
-          behavior: "smooth",
-        });
-    }, 300);
-  }
-
   function getDisplayedPrice(price: string) {
     if (userRole !== "tenant" || !rewardAmount) return price;
     const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);

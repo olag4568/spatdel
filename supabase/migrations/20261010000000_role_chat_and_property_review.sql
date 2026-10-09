@@ -144,6 +144,29 @@ begin
     raise exception 'Messages must be 4000 characters or fewer.';
   end if;
 
+  -- Reuse an existing one-to-one conversation for this pair and property.
+  select c.id
+  into new_conversation_id
+  from public.spatdel_chat_conversations c
+  where c.property_id is not distinct from related_property_id
+    and public.spatdel_is_chat_participant(c.id, actor_id)
+    and public.spatdel_is_chat_participant(c.id, target_user_id)
+    and (
+      select count(*)
+      from public.spatdel_chat_participants cp
+      where cp.conversation_id = c.id
+    ) = 2
+  order by c.updated_at desc
+  limit 1;
+
+  if new_conversation_id is not null then
+    if clean_message is not null then
+      insert into public.spatdel_chat_messages (conversation_id, sender_id, body)
+      values (new_conversation_id, actor_id, clean_message);
+    end if;
+    return new_conversation_id;
+  end if;
+
   insert into public.spatdel_chat_conversations (created_by, property_id)
   values (actor_id, related_property_id)
   returning id into new_conversation_id;

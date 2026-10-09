@@ -18,6 +18,8 @@ Do not manually grant clients permission to insert, update, or delete reward row
 After reviewing the SQL migration, open the Supabase dashboard for SPATDEL, go to **SQL Editor**, and run the complete file:
 `migrations/20261010000000_role_chat_and_property_review.sql`.
 
-This adds participant-based direct chats, secure row-level policies, and the `spatdel_start_chat` function. It also adds property review metadata (`approval_status`, `submitted_by`, `reviewed_by`, `reviewed_at`, `review_note`, and `images`) while keeping the existing `verified` flag synchronized with approval status.
+This adds participant-based direct chats, secure row-level policies, and the `spatdel_start_chat` function. It also adds property review metadata (`approval_status`, `submitted_by`, `reviewed_by`, `reviewed_at`, `review_note`, and `images`), synchronizes `verified` with approval status, creates the public `property-images` storage bucket, and adds agent/landlord submission policies.
 
-**Important:** this migration creates the database foundation only. The chat screens, agent listing form, image-storage setup, and admin review controls still need to be wired into the website before the full workflow is ready. Do not treat a successful migration as meaning those UI features are finished.
+The website now has an agent/landlord property submission dashboard at `/agent`. Signed-in agents and landlords can upload up to five photos, submit listing details for review, and track submission status. The existing admin dashboard can review submitted photos and approve or move listings back to pending. The landing page's dashboard link routes agents/landlords to `/agent`.
+
+**Important:** the migration must be run manually in Supabase SQL Editor before these features can work. The universal chat database foundation is present, but the actual chat screens and role labels in conversations still need to be built.

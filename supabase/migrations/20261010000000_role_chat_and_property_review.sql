@@ -53,7 +53,7 @@ on public.spatdel_chat_participants for select to authenticated
 using (
   exists (
     select 1 from public.spatdel_chat_participants mine
-    where mine.conversation_id = conversation_id
+    where mine.conversation_id = spatdel_chat_participants.conversation_id
       and mine.user_id = (select auth.uid())
   )
 );
@@ -195,6 +195,44 @@ alter table public.properties
 
 create index if not exists properties_approval_status_created_idx
   on public.properties(approval_status, created_at desc);
+
+-- Keep the current admin dashboard's verified toggle and the richer review state in sync.
+create or replace function public.spatdel_sync_property_approval_status()
+returns trigger
+language plpgsql
+set search_path = public
+as $
+begin
+  if tg_op = 'INSERT' then
+    if new.approval_status is null then
+      new.approval_status := case when new.verified is true then 'approved' else 'pending' end;
+    end if;
+    new.verified := (new.approval_status = 'approved');
+    return new;
+  end if;
+
+  if new.approval_status is distinct from old.approval_status then
+    new.verified := (new.approval_status = 'approved');
+    if new.approval_status in ('approved', 'rejected', 'changes_requested')
+       and new.reviewed_at is null then
+      new.reviewed_at := now();
+    end if;
+  elsif new.verified is distinct from old.verified then
+    new.approval_status := case when new.verified is true then 'approved' else 'pending' end;
+    if new.verified is true then
+      new.reviewed_at := coalesce(new.reviewed_at, now());
+    end if;
+  end if;
+
+  return new;
+end;
+$;
+
+drop trigger if exists spatdel_sync_property_approval_status on public.properties;
+create trigger spatdel_sync_property_approval_status
+before insert or update of verified, approval_status on public.properties
+for each row execute function public.spatdel_sync_property_approval_status();
+
 
 comment on column public.properties.approval_status is
   'Admin moderation state. Only approved listings should be visible in public property browsing.';

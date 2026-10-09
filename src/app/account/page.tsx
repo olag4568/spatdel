@@ -82,6 +82,9 @@ export default function AccountPage() {
   // USER ROLE
   const [userRole, setUserRole] =
     useState<UserRole>("tenant");
+  const [rewardAmount, setRewardAmount] = useState<number | null>(null);
+  const [rewardSpunAt, setRewardSpunAt] = useState<string | null>(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
 
   // SAVED PROPERTIES
   const [savedProperties, setSavedProperties] = useState<
@@ -179,6 +182,42 @@ export default function AccountPage() {
       subscription.unsubscribe();
     };
   }, [router, supabase]);
+
+  // LOAD THE TENANT'S LIFETIME SPIN REWARD
+  useEffect(() => {
+    if (!user?.id || userRole !== "tenant") {
+      setRewardAmount(null);
+      setRewardSpunAt(null);
+      setRewardLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    async function loadTenantReward() {
+      setRewardLoading(true);
+      const { data, error } = await supabase
+        .from("tenant_rewards")
+        .select("reward_amount, spun_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+      if (error) {
+        console.error("Failed to load tenant reward:", error);
+      } else {
+        setRewardAmount(data?.reward_amount ?? null);
+        setRewardSpunAt(data?.spun_at ?? null);
+      }
+      setRewardLoading(false);
+    }
+
+    loadTenantReward();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, userRole, supabase]);
 
   // LOAD SAVED PROPERTIES
   useEffect(() => {
@@ -580,13 +619,23 @@ export default function AccountPage() {
   function goToSpin() {
     router.push("/");
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       document
         .getElementById("spin")
         ?.scrollIntoView({
           behavior: "smooth",
         });
     }, 300);
+  }
+
+  function getDisplayedPrice(price: string) {
+    if (userRole !== "tenant" || !rewardAmount) return price;
+    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
+    if (!match) return price;
+    const originalAmount = Number(match[1].replace(/,/g, ""));
+    if (!Number.isFinite(originalAmount)) return price;
+    const discountedAmount = Math.max(0, originalAmount - rewardAmount);
+    return price.replace(match[0], "₦" + discountedAmount.toLocaleString("en-NG"));
   }
 
   function goHome() {
@@ -751,20 +800,20 @@ export default function AccountPage() {
               </p>
             </div>
 
-            {/* REWARD POINTS */}
-            <div className="rounded-2xl bg-[#f5f7f8] p-5">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#102f46] text-white">
-                <Trophy size={19} />
+            {/* LIFETIME RENT DISCOUNT — TENANTS ONLY */}
+            {userRole === "tenant" && (
+              <div className="rounded-2xl bg-[#f5f7f8] p-5">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#102f46] text-white">
+                  <Trophy size={19} />
+                </div>
+                <p className="text-sm text-[#738391]">Lifetime Rent Discount</p>
+                <p className="mt-1 text-2xl font-bold">
+                  {rewardAmount !== null
+                    ? "₦" + rewardAmount.toLocaleString("en-NG")
+                    : rewardLoading ? "Loading..." : "Not claimed"}
+                </p>
               </div>
-
-              <p className="text-sm text-[#738391]">
-                Reward Points
-              </p>
-
-              <p className="mt-1 text-2xl font-bold">
-                4,850
-              </p>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1008,7 +1057,7 @@ export default function AccountPage() {
                       </div>
 
                       <p className="mt-3 text-lg font-bold text-[#102f46]">
-                        {property.price}
+                        {getDisplayedPrice(property.price)}
                       </p>
 
                       <div className="mt-3 flex flex-wrap gap-3 text-xs text-[#607080]">
@@ -1045,40 +1094,39 @@ export default function AccountPage() {
 
         {/* LOWER DASHBOARD GRID */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* SPIN & EARN */}
-          <div className="rounded-3xl border border-[#dce3e7] bg-white p-6 shadow-sm sm:p-7">
-            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff4d6] text-[#9a7010]">
-              <Trophy size={21} />
-            </div>
-
-            <h2 className="text-xl font-bold">
-              Spin & Earn
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-[#687987]">
-              Keep spinning the Daily Rent Wheel to earn more
-              SPATDEL reward points.
-            </p>
-
-            <div className="mt-6 flex items-center justify-between rounded-2xl bg-[#102f46] p-5 text-white">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-[#b9c8d2]">
-                  Current Points
-                </p>
-
-                <p className="mt-1 text-2xl font-bold">
-                  4,850
-                </p>
+          {/* LIFETIME SPIN REWARD — TENANTS ONLY */}
+          {userRole === "tenant" && (
+            <div className="rounded-3xl border border-[#dce3e7] bg-white p-6 shadow-sm sm:p-7">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff4d6] text-[#9a7010]">
+                <Trophy size={21} />
               </div>
-
-              <button
-                onClick={goToSpin}
-                className="rounded-full bg-[#e9b949] px-5 py-2.5 text-sm font-bold text-[#102f46] transition hover:bg-[#f1c75d]"
-              >
-                Spin Now
-              </button>
+              <h2 className="text-xl font-bold">One-Time Rent Discount</h2>
+              <p className="mt-2 text-sm leading-6 text-[#687987]">
+                You can spin once in your lifetime. Your naira reward is saved permanently and reduces every available house's displayed price.
+              </p>
+              <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#102f46] p-5 text-white">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-[#b9c8d2]">Your saved reward</p>
+                  <p className="mt-1 text-2xl font-bold">
+                    {rewardAmount !== null
+                      ? "₦" + rewardAmount.toLocaleString("en-NG")
+                      : rewardLoading ? "Loading..." : "Not claimed"}
+                  </p>
+                  {rewardSpunAt && (
+                    <p className="mt-1 text-[10px] text-[#b9c8d2]">
+                      Claimed {new Date(rewardSpunAt).toLocaleDateString("en-NG")}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={goToSpin}
+                  className="rounded-full bg-[#e9b949] px-5 py-2.5 text-sm font-bold text-[#102f46] transition hover:bg-[#f1c75d]"
+                >
+                  {rewardAmount !== null ? "View Discount" : "Go to Spin"}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ENQUIRIES */}
           <div

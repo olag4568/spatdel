@@ -363,6 +363,17 @@ export default function Home() {
   function goToAccount() {
     setProfileMenu(false);
     setMobileMenu(false);
+
+    if (userRole === "agent" || userRole === "landlord") {
+      router.push("/agent");
+      return;
+    }
+
+    if (userRole === "admin") {
+      router.push("/admin");
+      return;
+    }
+
     router.push("/account");
   }
 

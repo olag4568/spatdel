@@ -23,6 +23,8 @@ import {
 type Property = {
   id: string;
   created_at?: string;
+  owner_id?: string | null;
+  submitted_by?: string | null;
   title: string;
   price: string;
   beds: number;
@@ -437,7 +439,7 @@ export default function Home() {
   |--------------------------------------------------------------------------
   */
 
-  async function handlePropertyEnquiry(property: Property) {
+  function handlePropertyEnquiry(property: Property) {
     if (!user) {
       goToLoginFromProperty(property);
       return;
@@ -447,24 +449,9 @@ export default function Home() {
     setEnquirySuccess(false);
     setMessageError("");
 
-    // Take the tenant straight to the main Messages inbox with this
-    // property's assigned agent/landlord selected.
-    const { data: propertyOwner, error: ownerError } = await supabase
-      .from("properties")
-      .select("owner_id, submitted_by")
-      .eq("id", property.id)
-      .single();
-
-    if (ownerError) {
-      console.error("Could not resolve property contact:", ownerError);
-      setEnquiryError("We could not find the agent or landlord for this property. Please try again.");
-      setEnquirySubject(`Enquiry about ${property.title}`);
-      setEnquiryMessage("");
-      setEnquiryMode(true);
-      return;
-    }
-
-    const targetUserId = propertyOwner?.owner_id || propertyOwner?.submitted_by;
+    // Use the owner/submitter already returned with the public listing.
+    // Avoid a second properties query that can fail under row-level security.
+    const targetUserId = property.owner_id || property.submitted_by;
 
     if (!targetUserId) {
       setEnquiryError("This property has no assigned agent or landlord yet.");
@@ -484,7 +471,9 @@ export default function Home() {
 
     setEnquiryMode(false);
     setChatMode(false);
-    router.push(`/messages?user=${encodeURIComponent(targetUserId)}&property=${encodeURIComponent(property.id)}`);
+    router.push(
+      `/messages?user=${encodeURIComponent(targetUserId)}&property=${encodeURIComponent(property.id)}`
+    );
   }
 
   async function submitPropertyEnquiry() {

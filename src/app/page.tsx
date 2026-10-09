@@ -437,7 +437,7 @@ export default function Home() {
   |--------------------------------------------------------------------------
   */
 
-  function handlePropertyEnquiry(property: Property) {
+  async function handlePropertyEnquiry(property: Property) {
     if (!user) {
       goToLoginFromProperty(property);
       return;
@@ -446,14 +446,45 @@ export default function Home() {
     setEnquiryError("");
     setEnquirySuccess(false);
     setMessageError("");
+
+    // Take the tenant straight to the main Messages inbox with this
+    // property's assigned agent/landlord selected.
+    const { data: propertyOwner, error: ownerError } = await supabase
+      .from("properties")
+      .select("owner_id, submitted_by")
+      .eq("id", property.id)
+      .single();
+
+    if (ownerError) {
+      console.error("Could not resolve property contact:", ownerError);
+      setEnquiryError("We could not find the agent or landlord for this property. Please try again.");
+      setEnquirySubject(`Enquiry about ${property.title}`);
+      setEnquiryMessage("");
+      setEnquiryMode(true);
+      return;
+    }
+
+    const targetUserId = propertyOwner?.owner_id || propertyOwner?.submitted_by;
+
+    if (!targetUserId) {
+      setEnquiryError("This property has no assigned agent or landlord yet.");
+      setEnquirySubject(`Enquiry about ${property.title}`);
+      setEnquiryMessage("");
+      setEnquiryMode(true);
+      return;
+    }
+
+    if (targetUserId === user.id) {
+      setEnquiryError("You cannot enquire about your own listing.");
+      setEnquirySubject(`Enquiry about ${property.title}`);
+      setEnquiryMessage("");
+      setEnquiryMode(true);
+      return;
+    }
+
+    setEnquiryMode(false);
     setChatMode(false);
-
-    setEnquirySubject(
-      `Enquiry about ${property.title}`
-    );
-
-    setEnquiryMessage("");
-    setEnquiryMode(true);
+    router.push(`/messages?user=${encodeURIComponent(targetUserId)}&property=${encodeURIComponent(property.id)}`);
   }
 
   async function submitPropertyEnquiry() {

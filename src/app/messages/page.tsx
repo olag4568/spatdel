@@ -513,11 +513,14 @@ function MessagesContent() {
                 <div className="max-h-[55vh] space-y-1 overflow-y-auto">
                   {filteredPeople.map((person) => (
                     <div key={person.id} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-[#f5f7f8]">
-                      <button onClick={() => router.push(`/profile/${person.id}`)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left" aria-label={`View ${displayName(person)}'s profile`}>
+                      <button onClick={() => choosePerson(person)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left" aria-label={`Open conversation with ${displayName(person)}`}>
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4] text-[#102f46]">{person.avatar_url ? <img src={person.avatar_url} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={20} />}</div>
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{displayName(person)}</p><p className="mt-0.5 truncate text-xs text-[#687987]">{person.username ? `@${person.username}` : roleLabel(person.role)}</p><p className="mt-0.5 text-xs text-[#087b62]">{roleLabel(person.role)} · View profile</p></div>
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{displayName(person)}</p><p className="mt-0.5 truncate text-xs text-[#687987]">{person.username ? `@${person.username}` : roleLabel(person.role)}</p><p className="mt-0.5 text-xs text-[#087b62]">{roleLabel(person.role)} · Open conversation</p></div>
                       </button>
-                      <button onClick={() => choosePerson(person)} className="shrink-0 rounded-full bg-[#102f46] px-3 py-2 text-xs font-bold text-white hover:bg-[#183d57]">Message</button>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <button onClick={() => choosePerson(person)} className="rounded-full bg-[#102f46] px-3 py-2 text-xs font-bold text-white hover:bg-[#183d57]">Message</button>
+                        <button onClick={() => router.push(`/profile/${person.id}`)} className="px-2 py-1 text-[11px] font-semibold text-[#087b62] underline underline-offset-2">View profile</button>
+                      </div>
                     </div>
                   ))}
                   {filteredPeople.length === 0 && <p className="p-4 text-sm text-[#687987]">No matching users found.</p>}

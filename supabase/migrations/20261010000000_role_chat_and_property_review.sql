@@ -47,14 +47,14 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select exists (
     select 1
     from public.spatdel_chat_participants p
     where p.conversation_id = target_conversation_id
       and p.user_id = target_user_id
   );
-$;
+$$;
 
 revoke all on function public.spatdel_is_chat_participant(uuid, uuid) from public;
 grant execute on function public.spatdel_is_chat_participant(uuid, uuid) to authenticated;
@@ -196,7 +196,7 @@ create or replace function public.spatdel_sync_property_approval_status()
 returns trigger
 language plpgsql
 set search_path = public
-as $
+as $$
 begin
   if tg_op = 'INSERT' then
     if new.approval_status is null then
@@ -221,7 +221,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists spatdel_sync_property_approval_status on public.properties;
 create trigger spatdel_sync_property_approval_status

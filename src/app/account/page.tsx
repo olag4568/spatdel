@@ -944,11 +944,7 @@ export default function AccountPage() {
 
             {/* MESSAGES */}
             <button
-              onClick={() => {
-                alert(
-                  "The SPATDEL chat system will be connected here next."
-                );
-              }}
+              onClick={() => router.push("/messages")}
               className="group rounded-3xl border border-[#dce3e7] bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8f4ed] text-[#28734b]">

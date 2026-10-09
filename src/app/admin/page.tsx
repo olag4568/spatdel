@@ -34,6 +34,18 @@ type Profile = {
   created_at?: string | null;
 };
 
+type CommunityReport = {
+  id: string;
+  reporter_id: string;
+  target_type: "post" | "comment" | "message";
+  target_id: string;
+  reason: string;
+  status: "open" | "resolved";
+  created_at: string;
+  reporter_name?: string;
+  target_content?: string;
+};
+
 type Property = {
   id: string;
   title: string;
@@ -65,6 +77,9 @@ export default function AdminDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [users, setUsers] = useState<Profile[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [communityReports, setCommunityReports] = useState<CommunityReport[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -160,6 +175,57 @@ export default function AdminDashboard() {
     }
 
     setLoadingProperties(false);
+
+    setLoadingReports(true);
+    const { data: reportData, error: reportsError } = await supabase
+      .from("spatdel_community_reports")
+      .select("id, reporter_id, target_type, target_id, reason, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (reportsError) {
+      setError((current) =>
+        current
+          ? `${current} Community reports: ${reportsError.message}`
+          : `Could not load community reports: ${reportsError.message}`
+      );
+    } else {
+      const rows = (reportData || []) as CommunityReport[];
+      const targetIds = (type: CommunityReport["target_type"]) =>
+        rows.filter((report) => report.target_type === type).map((report) => report.target_id);
+
+      const [postsResult, commentsResult, messagesResult] = await Promise.all([
+        targetIds("post").length
+          ? supabase.from("spatdel_community_posts").select("id, body").in("id", targetIds("post"))
+          : Promise.resolve({ data: [], error: null }),
+        targetIds("comment").length
+          ? supabase.from("spatdel_community_comments").select("id, body").in("id", targetIds("comment"))
+          : Promise.resolve({ data: [], error: null }),
+        targetIds("message").length
+          ? supabase.from("spatdel_community_messages").select("id, body").in("id", targetIds("message"))
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      const contentById = new Map<string, string>();
+      for (const item of [...(postsResult.data || []), ...(commentsResult.data || []), ...(messagesResult.data || [])]) {
+        contentById.set(item.id, item.body);
+      }
+
+      const reporterIds = Array.from(new Set(rows.map((report) => report.reporter_id)));
+      const { data: reporterProfiles } = reporterIds.length
+        ? await supabase.from("profiles").select("id, full_name, email").in("id", reporterIds)
+        : { data: [] };
+      const reporterNameById = new Map(
+        (reporterProfiles || []).map((item) => [item.id, item.full_name || item.email || "SPATDEL member"])
+      );
+
+      setCommunityReports(rows.map((report) => ({
+        ...report,
+        reporter_name: reporterNameById.get(report.reporter_id) || "SPATDEL member",
+        target_content: contentById.get(report.target_id) || "[Content unavailable or already deleted]",
+      })));
+    }
+    setLoadingReports(false);
     setLoading(false);
   }, [router, supabase]);
 
@@ -305,6 +371,25 @@ export default function AdminDashboard() {
     setTimeout(() => {
       setSuccess("");
     }, 3000);
+  }
+
+  async function resolveCommunityReport(reportId: string) {
+    setError("");
+    setSuccess("");
+    setResolvingReportId(reportId);
+    const { error: resolveError } = await supabase
+      .from("spatdel_community_reports")
+      .update({ status: "resolved" })
+      .eq("id", reportId);
+    if (resolveError) {
+      setError(`Could not resolve report: ${resolveError.message}`);
+    } else {
+      setCommunityReports((current) =>
+        current.map((report) => report.id === reportId ? { ...report, status: "resolved" } : report)
+      );
+      setSuccess("Community report marked as reviewed.");
+    }
+    setResolvingReportId(null);
   }
 
   const tenantCount = users.filter(
@@ -570,8 +655,8 @@ export default function AdminDashboard() {
 
           <StatCard
             title="Reports"
-            value="0"
-            description="Issues to review"
+            value={communityReports.filter((report) => report.status === "open").length.toString()}
+            description="Open community reports"
             icon={<FileWarning size={21} />}
           />
         </div>
@@ -602,6 +687,60 @@ export default function AdminDashboard() {
             icon={<ShieldCheck size={19} />}
           />
         </div>
+
+        {/* COMMUNITY MODERATION */}
+        <section id="community-moderation" className="mt-8 scroll-mt-6 overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-sm">
+          <div className="flex flex-col justify-between gap-3 border-b border-[#102f46]/10 p-5 sm:flex-row sm:items-center sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0e8] text-[#c34b12]"><FileWarning size={20} /></div>
+              <div>
+                <h2 className="text-xl font-black">Community Moderation</h2>
+                <p className="text-xs text-[#71808a]">Review member reports from Community Pulse.</p>
+              </div>
+            </div>
+            <div className="rounded-full bg-[#e4f5ee] px-3 py-1.5 text-xs font-bold text-[#087b62]">
+              {communityReports.filter((report) => report.status === "open").length} open reports
+            </div>
+          </div>
+          <div className="space-y-3 p-4 sm:p-6">
+            {loadingReports ? (
+              <p className="py-8 text-center text-sm text-[#71808a]">Loading community reports...</p>
+            ) : communityReports.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#102f46]/15 p-8 text-center">
+                <ShieldCheck className="mx-auto text-[#087b62]" size={28} />
+                <p className="mt-3 font-bold">No community reports yet.</p>
+                <p className="mt-1 text-sm text-[#71808a]">Reports submitted by members will appear here.</p>
+              </div>
+            ) : communityReports.map((report) => (
+              <article key={report.id} className="rounded-xl border border-[#102f46]/10 p-4">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-[#f8f7f2] px-2.5 py-1 text-[11px] font-bold uppercase text-[#102f46]">{report.target_type}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${report.status === "open" ? "bg-orange-50 text-orange-700" : "bg-[#e4f5ee] text-[#087b62]"}`}>{report.status === "open" ? "Needs review" : "Reviewed"}</span>
+                      <span className="text-xs text-[#71808a]">{formatDate(report.created_at)}</span>
+                    </div>
+                    <p className="mt-3 text-sm font-bold">Reported by {report.reporter_name || "SPATDEL member"}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#71808a]">Reason: {report.reason}</p>
+                    <div className="mt-3 rounded-lg bg-[#f8f7f2] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#71808a]">Reported content</p>
+                      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{report.target_content}</p>
+                    </div>
+                  </div>
+                  {report.status === "open" && (
+                    <button
+                      onClick={() => void resolveCommunityReport(report.id)}
+                      disabled={resolvingReportId === report.id}
+                      className="shrink-0 rounded-lg bg-[#087b62] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#06644f] disabled:opacity-50"
+                    >
+                      {resolvingReportId === report.id ? "Saving..." : "Mark reviewed"}
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
         {/* USER MANAGEMENT */}
         <section

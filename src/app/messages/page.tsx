@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -79,6 +79,8 @@ function MessagesContent() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const lastUnreadCount = useRef<number | null>(null);
 
   const loadConversations = useCallback(async (userId: string) => {
     const { data: memberships, error: membershipError } = await supabase
@@ -328,6 +330,47 @@ function MessagesContent() {
     return () => window.clearInterval(intervalId);
   }, [currentUserId, loadConversations]);
 
+  // Count unread incoming messages and alert the recipient while SPATDEL is open.
+  useEffect(() => {
+    if (!currentUserId) return;
+    let active = true;
+
+    async function checkUnreadMessages() {
+      const { data: memberships, error: membershipError } = await supabase
+        .from("spatdel_chat_participants")
+        .select("conversation_id")
+        .eq("user_id", currentUserId);
+      if (!active || membershipError) return;
+
+      const ids = Array.from(new Set((memberships ?? []).map((row) => row.conversation_id as string)));
+      if (ids.length === 0) {
+        setUnreadCount(0);
+        lastUnreadCount.current = 0;
+        return;
+      }
+
+      const { data: unreadRows, error: unreadError } = await supabase
+        .from("spatdel_chat_messages")
+        .select("id, conversation_id")
+        .in("conversation_id", ids)
+        .neq("sender_id", currentUserId)
+        .is("read_at", null);
+      if (!active || unreadError) return;
+
+      const nextCount = (unreadRows ?? []).length;
+      const previousCount = lastUnreadCount.current;
+      setUnreadCount(nextCount);
+      if (previousCount !== null && nextCount > previousCount && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification("New SPATDEL message", { body: "You have a new message in your SPATDEL inbox." });
+      }
+      lastUnreadCount.current = nextCount;
+    }
+
+    void checkUnreadMessages();
+    const intervalId = window.setInterval(() => { void checkUnreadMessages(); }, 5000);
+    return () => { active = false; window.clearInterval(intervalId); };
+  }, [currentUserId, supabase]);
+
   // Poll the open conversation for incoming messages and read receipts.
   // This works even if Supabase Realtime has not been enabled for these tables.
   useEffect(() => {
@@ -490,7 +533,12 @@ function MessagesContent() {
             <img src="/spatdel.png" alt="SPATDEL" className="h-11 w-auto object-contain" />
             <div><p className="font-bold">SPATDEL Messages</p><p className="text-xs text-[#687987]">Signed in as {roleLabel(myProfile?.role ?? "member")}</p></div>
           </div>
-          <button onClick={() => router.push("/")} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]"><ArrowLeft size={16} /> Home</button>
+          <div className="flex items-center gap-2">
+            <button onClick={async () => { if (!("Notification" in window)) { setNotice("This browser does not support desktop notifications."); return; } const permission = await Notification.requestPermission(); setNotice(permission === "granted" ? "Notifications enabled for new messages while SPATDEL is open." : "Notifications are not enabled. You can still see unread messages in your inbox."); }} className="relative inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-3 py-2 text-sm font-semibold hover:bg-[#f5f7f8]" title="Enable message notifications">
+              <MessageCircle size={16} /> Messages {unreadCount > 0 && <span className="rounded-full bg-[#f05a00] px-2 py-0.5 text-xs font-bold text-white">{unreadCount}</span>}
+            </button>
+            <button onClick={() => router.push("/")} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]"><ArrowLeft size={16} /> Home</button>
+          </div>
         </div>
       </header>
 
@@ -537,7 +585,7 @@ function MessagesContent() {
                 {conversations.map((chat) => (
                   <button key={chat.id} onClick={() => { setNewChatTargetId(""); setPendingPropertyId(chat.property_id); setActiveConversationId(chat.id); setDirectoryOpen(false); setError(""); }} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left transition ${activeConversationId === chat.id ? "bg-[#e8f4ed]" : "hover:bg-[#f5f7f8]"}`}>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4]">{people.find((person) => person.id === chat.otherUserId)?.avatar_url ? <img src={people.find((person) => person.id === chat.otherUserId)?.avatar_url ?? ""} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={21} />}</div>
-                    <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{chat.otherName}</p><span className="text-[10px] text-[#8a969f]">{new Date(chat.updated_at).toLocaleDateString("en-NG")}</span></div><p className="mt-1 text-xs font-semibold text-[#087b62]">{roleLabel(chat.otherRole)}</p><p className="mt-1 truncate text-xs text-[#8a969f]">{chat.title || "Direct message"}</p></div>
+                    <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{chat.otherName}</p><span className="text-[10px] text-[#8a969f]">{new Date(chat.updated_at).toLocaleDateString("en-NG")}</span></div><p className="mt-1 text-xs font-semibold text-[#087b62]">{roleLabel(chat.otherRole)}</p><p className="mt-1 truncate text-xs text-[#8a969f]">{chat.title || "Direct message"}</p><p className="mt-1 text-[10px] font-semibold text-[#f05a00]">{/* unread counts are shown in the header */}</p></div>
                   </button>
                 ))}
                 {conversations.length === 0 && <div className="p-6 text-center"><MessageCircle className="mx-auto text-[#9aa7af]" size={26} /><p className="mt-3 text-sm font-bold">No chats yet</p><p className="mt-1 text-xs leading-5 text-[#687987]">Start a conversation with a tenant, agent, landlord, or admin.</p><button onClick={() => setDirectoryOpen(true)} className="mt-4 rounded-full bg-[#102f46] px-4 py-2 text-xs font-bold text-white">Start a chat</button></div>}

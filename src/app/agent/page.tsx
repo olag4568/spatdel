@@ -46,6 +46,7 @@ export default function AgentDashboard() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [pricePeriod, setPricePeriod] = useState("per year");
+  const [listingPurpose, setListingPurpose] = useState<"rent" | "sale">("rent");
   const [location, setLocation] = useState("");
   const [propertyType, setPropertyType] = useState("Apartment");
   const [beds, setBeds] = useState("2");
@@ -189,7 +190,8 @@ export default function AgentDashboard() {
         imageUrls.push(publicUrl.publicUrl);
       }
 
-      const formattedPrice = `₦${numericPrice.toLocaleString("en-NG")} ${pricePeriod}`;
+      const effectivePricePeriod = listingPurpose === "sale" ? "total price" : pricePeriod;
+      const formattedPrice = `₦${numericPrice.toLocaleString("en-NG")} ${effectivePricePeriod}`;
 
       const { data: inserted, error: insertError } = await supabase
         .from("properties")
@@ -207,7 +209,8 @@ export default function AgentDashboard() {
           power_hours: powerHours,
           location: location.trim(),
           type: propertyType,
-          description: description.trim(),
+          listing_purpose: listingPurpose,
+          description: description.trim() || null,
           verified: false,
           approval_status: "pending",
           submitted_by: profile.id,
@@ -225,6 +228,8 @@ export default function AgentDashboard() {
 
       setTitle("");
       setPrice("");
+      setPricePeriod("per year");
+      setListingPurpose("rent");
       setLocation("");
       setBeds("2");
       setBaths("1");
@@ -295,6 +300,15 @@ export default function AgentDashboard() {
               <input id="title" required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. 2-bedroom apartment in Lekki" className="mt-2 w-full rounded-xl border border-[#d5dde2] bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
             </div>
 
+            <div>
+              <label htmlFor="listingPurpose" className="text-sm font-semibold">Listing purpose *</label>
+              <select id="listingPurpose" value={listingPurpose} onChange={(e) => { const purpose = e.target.value as "rent" | "sale"; setListingPurpose(purpose); setPricePeriod(purpose === "sale" ? "total price" : "per year"); }} className="mt-2 w-full rounded-xl border border-[#d5dde2] bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]">
+                <option value="rent">For rent</option>
+                <option value="sale">For sale</option>
+              </select>
+              <p className="mt-1 text-xs text-[#687987]">Choose whether this property is being rented out or sold.</p>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="price" className="text-sm font-semibold">Price in naira *</label>
@@ -302,10 +316,8 @@ export default function AgentDashboard() {
               </div>
               <div>
                 <label htmlFor="pricePeriod" className="text-sm font-semibold">Price period *</label>
-                <select id="pricePeriod" value={pricePeriod} onChange={(e) => setPricePeriod(e.target.value)} className="mt-2 w-full rounded-xl border border-[#d5dde2] bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]">
-                  <option value="per year">Per year</option>
-                  <option value="per month">Per month</option>
-                  <option value="total price">Total price</option>
+                <select id="pricePeriod" value={listingPurpose === "sale" ? "total price" : pricePeriod} disabled={listingPurpose === "sale"} onChange={(e) => setPricePeriod(e.target.value)} className="mt-2 w-full rounded-xl border border-[#d5dde2] bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62] disabled:bg-[#f2f4f5]">
+                  {listingPurpose === "sale" ? <option value="total price">Total sale price</option> : <><option value="per year">Per year</option><option value="per month">Per month</option></>}
                 </select>
               </div>
             </div>
@@ -338,8 +350,8 @@ export default function AgentDashboard() {
             </div>
 
             <div>
-              <label htmlFor="description" className="text-sm font-semibold">Description *</label>
-              <textarea id="description" required minLength={20} maxLength={3000} rows={5} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the property, nearby facilities, and important details." className="mt-2 w-full resize-y rounded-xl border border-[#d5dde2] px-4 py-3 text-sm leading-6 outline-none focus:border-[#087b62]" />
+              <label htmlFor="description" className="text-sm font-semibold">Description <span className="font-normal text-[#8a969f]">(optional)</span></label>
+              <textarea id="description" maxLength={3000} rows={5} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the property, nearby facilities, and important details." className="mt-2 w-full resize-y rounded-xl border border-[#d5dde2] px-4 py-3 text-sm leading-6 outline-none focus:border-[#087b62]" />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

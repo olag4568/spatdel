@@ -1181,6 +1181,17 @@ export default function Home() {
                     </div>
 
                     <button
+                      onClick={() => {
+                        setProfileMenu(false);
+                        router.push("/profile/edit");
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
+                    >
+                      <User size={15} />
+                      My Profile
+                    </button>
+
+                    <button
                       onClick={goToAccount}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
                     >
@@ -1338,6 +1349,18 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => {
+                      setProfileMenu(false);
+                      setMobileMenu(false);
+                      router.push("/profile/edit");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"
+                  >
+                    <User size={16} />
+                    My Profile
+                  </button>
 
                   <button
                     onClick={goToAccount}

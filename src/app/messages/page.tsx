@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -54,7 +54,7 @@ function displayName(profile: Profile | undefined) {
   return profile?.full_name?.trim() || roleLabel(profile?.role ?? "member");
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Keep one browser client for this page; recreating it each render restarts effects.
@@ -576,5 +576,14 @@ export default function MessagesPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-[#f8f7f2] text-[#102f46]">Loading messages...</main>}>
+      <MessagesContent />
+    </Suspense>
   );
 }

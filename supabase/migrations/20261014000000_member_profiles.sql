@@ -7,8 +7,11 @@ alter table public.profiles
 -- Give existing members a unique starter username; they can change it from Edit Profile.
 update public.profiles
 set username = left(
-  regexp_replace(lower(coalesce(nullif(trim(full_name), ''), 'member')), '[^a-z0-9]+', '-', 'g'),
-  24
+  coalesce(
+    nullif(trim(both '-' from regexp_replace(lower(coalesce(nullif(trim(full_name), ''), 'member')), '[^a-z0-9]+', '-', 'g')), ''),
+    'member'
+  ),
+  17
 ) || '-' || left(replace(id::text, '-', ''), 6)
 where username is null or trim(username) = '';
 

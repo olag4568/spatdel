@@ -245,6 +245,18 @@ with check (
   )
 );
 
+drop policy if exists "Agents and landlords can read own property submissions" on public.properties;
+create policy "Agents and landlords can read own property submissions"
+on public.properties for select to authenticated
+using (
+  submitted_by = (select auth.uid())
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid())
+      and p.role in ('agent', 'landlord')
+  )
+);
+
 -- A public bucket makes approved property photos viewable by the public URL.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('property-images', 'property-images', true, 10485760, array['image/jpeg','image/png','image/webp'])

@@ -45,3 +45,10 @@ Run `supabase/migrations/20261013000000_public_member_profiles.sql` in Supabase 
 - Agent and landlord profiles show approved listings associated with that member.
 - The profile currently uses the existing `full_name` field; SPATDEL does not yet store a separate username, bio, or profile photo field.
 
+
+
+### Usernames, profile photos, and bios
+
+After the existing chat directory and public profile migrations, run `supabase/migrations/20261014000000_member_profiles.sql` in Supabase SQL Editor. It adds unique usernames, profile photo URLs, bios, a public `profile-photos` storage bucket with per-user upload permissions, and secure RPCs for editing and reading public profile fields. Members can edit these details at `/profile/edit` or from Account Settings. The profile editor accepts JPG, PNG, and WebP images up to 3 MB.
+
+The update RPC only permits changes to a member's display name, username, bio, and photo URL; it does not allow a user to change their account role. The migration refreshes the member directory and public-profile RPCs so the new public fields can be shown in search and messaging.

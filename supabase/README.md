@@ -20,6 +20,8 @@ After reviewing the SQL migration, open the Supabase dashboard for SPATDEL, go t
 
 This adds participant-based direct chats, secure row-level policies, and the `spatdel_start_chat` function. It also adds property review metadata (`approval_status`, `submitted_by`, `reviewed_by`, `reviewed_at`, `review_note`, and `images`), synchronizes `verified` with approval status, creates the public `property-images` storage bucket, and adds agent/landlord submission policies.
 
+The follow-up migration `20261011000000_listing_purpose_and_admin_delete.sql` adds the explicit `listing_purpose` field (`rent` or `sale`), ensures descriptions can be null, and grants admins permission to delete unsuitable property listings. Run this migration after the role-chat/property-review migration. It is safe to run even if the first migration already added the listing-purpose column and admin delete policy.
+
 The website now has:
 - An agent/landlord property submission dashboard at `/agent`. Signed-in agents and landlords can upload up to five photos, submit listing details for review, and track submission status. Photos are optional during initial submission, but admins may request them before approval.
 - Admin review controls in `/admin`, including submitted-photo viewing and approval/pending status.

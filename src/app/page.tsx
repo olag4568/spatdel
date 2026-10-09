@@ -481,18 +481,51 @@ export default function Home() {
     }
 
     if (cleanMessage.length < 10) {
-      setEnquiryError(
-        "Please make your message a little more detailed."
-      );
+      setEnquiryError("Please make your message a little more detailed.");
       return;
     }
 
     setEnquirySubmitting(true);
 
     try {
-      /*
-       * First create the enquiry.
-       */
+      // Resolve the actual listing owner so the conversation goes to the right account.
+      const { data: propertyOwner, error: ownerError } = await supabase
+        .from("properties")
+        .select("owner_id, submitted_by")
+        .eq("id", selectedProperty.id)
+        .single();
+
+      if (ownerError) throw new Error("We could not find the agent or landlord for this property.");
+
+      const targetUserId = propertyOwner?.owner_id || propertyOwner?.submitted_by;
+      if (!targetUserId) {
+        setEnquiryError("This property has no assigned agent or landlord yet.");
+        return;
+      }
+
+      if (targetUserId === user.id) {
+        setEnquiryError("You cannot enquire about your own listing.");
+        return;
+      }
+
+      // Start/reuse the same conversation shown in the main SPATDEL Messages inbox.
+      const { data: conversationId, error: chatError } = await supabase.rpc(
+        "spatdel_start_chat",
+        {
+          target_user_id: targetUserId,
+          related_property_id: selectedProperty.id,
+          first_message: null,
+        }
+      );
+
+      if (chatError || !conversationId) {
+        console.error("Could not start linked property chat:", chatError);
+        setEnquiryError("We could not open the message conversation. Please try again.");
+        return;
+      }
+
+      // Link the property enquiry to that conversation. The database trigger mirrors
+      // all property_messages into the main chat and vice versa.
       const { data, error } = await supabase
         .from("property_enquiries")
         .insert({
@@ -501,92 +534,43 @@ export default function Home() {
           subject: cleanSubject,
           message: cleanMessage,
           status: "pending",
+          conversation_id: conversationId,
         })
         .select("id")
         .single();
 
-      if (error) {
-        console.error(
-          "Failed to create property enquiry:",
-          error
-        );
-
-        setEnquiryError(
-          "We could not start the conversation. Please try again."
-        );
-
+      if (error || !data?.id) {
+        console.error("Failed to create linked property enquiry:", error);
+        setEnquiryError("We could not save the enquiry. Please try again.");
         return;
       }
 
-      if (!data?.id) {
-        setEnquiryError(
-          "The enquiry was created, but no conversation ID was returned."
-        );
-
-        return;
-      }
-
-      /*
-       * Create the first chat message.
-       *
-       * NOTE:
-       * This requires the property_messages table.
-       */
-      const { data: messageData, error: messageError } =
-        await supabase
-          .from("property_messages")
-          .insert({
-            enquiry_id: data.id,
-            sender_id: user.id,
-            message: cleanMessage,
-          })
-          .select(
-            "id, enquiry_id, sender_id, message, created_at, read_at"
-          )
-          .single();
+      const { data: messageData, error: messageError } = await supabase
+        .from("property_messages")
+        .insert({
+          enquiry_id: data.id,
+          sender_id: user.id,
+          message: cleanMessage,
+        })
+        .select("id, enquiry_id, sender_id, message, created_at, read_at")
+        .single();
 
       if (messageError) {
-        console.error(
-          "Failed to create first property message:",
-          messageError
-        );
-
-        /*
-         * The enquiry exists, so don't pretend the whole
-         * operation failed. Tell the user the enquiry was
-         * created but chat needs attention.
-         */
-        setEnquiryError(
-          "Your enquiry was created, but the chat could not be started yet."
-        );
-
+        console.error("Failed to create first property message:", messageError);
+        setEnquiryError("Your enquiry was created, but the first message could not be sent.");
         return;
       }
 
-      if (messageData) {
-        setMessages([
-          messageData as PropertyMessage,
-        ]);
-      } else {
-        setMessages([]);
-      }
-
+      setMessages(messageData ? [messageData as PropertyMessage] : []);
       setActiveEnquiryId(data.id);
       setEnquirySuccess(true);
       setEnquiryMode(false);
       setChatMode(true);
-
       setEnquirySubject("");
       setEnquiryMessage("");
     } catch (error) {
-      console.error(
-        "Unexpected enquiry error:",
-        error
-      );
-
-      setEnquiryError(
-        "Something went wrong. Please try again."
-      );
+      console.error("Unexpected enquiry error:", error);
+      setEnquiryError(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally {
       setEnquirySubmitting(false);
     }

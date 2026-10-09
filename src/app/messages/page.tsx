@@ -68,6 +68,7 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -142,7 +143,7 @@ export default function MessagesPage() {
 
       const [myResult, peopleResult] = await Promise.all([
         supabase.from("profiles").select("id, full_name, role").eq("id", authData.user.id).single(),
-        supabase.from("profiles").select("id, full_name, role").neq("id", authData.user.id).order("full_name"),
+        supabase.rpc("spatdel_search_profiles", { search_text: "", role_filter: "all" }),
       ]);
 
       if (!active) return;
@@ -202,6 +203,34 @@ export default function MessagesPage() {
     initialise();
     return () => { active = false; };
   }, [router, supabase]);
+
+  // Search the secure server-side directory so results do not depend on direct
+  // SELECT permissions for the profiles table.
+  useEffect(() => {
+    if (!currentUserId || !directoryOpen) return;
+
+    let active = true;
+    const timeoutId = window.setTimeout(async () => {
+      const { data, error: directoryError } = await supabase.rpc(
+        "spatdel_search_profiles",
+        { search_text: search.trim(), role_filter: roleFilter }
+      );
+
+      if (!active) return;
+
+      if (directoryError) {
+        setError("Could not search SPATDEL members. Please run the chat profile directory migration in Supabase.");
+        return;
+      }
+
+      setPeople((data ?? []) as Profile[]);
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [currentUserId, directoryOpen, roleFilter, search, supabase]);
 
   useEffect(() => {
     let active = true;
@@ -393,9 +422,9 @@ export default function MessagesPage() {
     : newChatPerson;
   const filteredPeople = people.filter((person) => {
     const query = search.trim().toLowerCase();
-    return !query ||
-      displayName(person).toLowerCase().includes(query) ||
-      roleLabel(person.role).toLowerCase().includes(query);
+    const matchesName = !query || displayName(person).toLowerCase().includes(query);
+    const matchesRole = roleFilter === "all" || person.role.toLowerCase() === roleFilter;
+    return matchesName && matchesRole;
   });
 
   if (loading) {
@@ -427,8 +456,15 @@ export default function MessagesPage() {
 
             {directoryOpen ? (
               <div className="p-3">
-                <div className="relative"><Search size={16} className="absolute left-3 top-3 text-[#8a969f]" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a person or role" className="w-full rounded-xl border border-[#d5dde2] py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#087b62]" /></div>
-                <p className="px-1 pb-2 pt-4 text-xs font-bold uppercase tracking-wide text-[#8a969f]">People on SPATDEL</p>
+                <div className="relative"><Search size={16} className="absolute left-3 top-3 text-[#8a969f]" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by profile name" className="w-full rounded-xl border border-[#d5dde2] py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#087b62]" /></div>
+                <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter SPATDEL members by role" className="mt-2 w-full rounded-xl border border-[#d5dde2] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]">
+                  <option value="all">Everyone on SPATDEL</option>
+                  <option value="tenant">Tenants</option>
+                  <option value="agent">Agents</option>
+                  <option value="landlord">Landlords</option>
+                  <option value="admin">Admins</option>
+                </select>
+                <p className="px-1 pb-2 pt-4 text-xs font-bold uppercase tracking-wide text-[#8a969f]">SPATDEL member profiles</p>
                 <div className="max-h-[55vh] space-y-1 overflow-y-auto">
                   {filteredPeople.map((person) => (
                     <button key={person.id} onClick={() => choosePerson(person)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-[#f5f7f8]">

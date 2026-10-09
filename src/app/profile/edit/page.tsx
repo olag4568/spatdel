@@ -12,6 +12,8 @@ type MemberProfile = {
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  contact_phone: string | null;
+  location: string | null;
   role: string;
 };
 
@@ -22,6 +24,8 @@ export default function EditProfilePage() {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [location, setLocation] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
@@ -51,6 +55,8 @@ export default function EditProfilePage() {
           setFullName(profile.full_name ?? "");
           setUsername(profile.username ?? "");
           setBio(profile.bio ?? "");
+          setContactPhone(profile.contact_phone ?? "");
+          setLocation(profile.location ?? "");
           setAvatarUrl(profile.avatar_url ?? "");
         } else {
           setError("Your SPATDEL profile could not be found.");
@@ -100,6 +106,10 @@ export default function EditProfilePage() {
       setError("Your bio must be 280 characters or fewer.");
       return;
     }
+    if (contactPhone.trim().length > 30 || location.trim().length > 120) {
+      setError("Contact number must be 30 characters or fewer and location 120 characters or fewer.");
+      return;
+    }
 
     setSaving(true);
     let finalAvatarUrl = avatarUrl;
@@ -122,6 +132,8 @@ export default function EditProfilePage() {
         p_username: cleanUsername,
         p_bio: bio.trim() || null,
         p_avatar_url: finalAvatarUrl || null,
+        p_contact_phone: contactPhone.trim() || null,
+        p_location: location.trim() || null,
       });
       if (saveError) throw new Error(saveError.message);
       const saved = ((data ?? [])[0] ?? null) as MemberProfile | null;
@@ -129,6 +141,8 @@ export default function EditProfilePage() {
         setFullName(saved.full_name ?? cleanName);
         setUsername(saved.username ?? cleanUsername);
         setBio(saved.bio ?? "");
+        setContactPhone(saved.contact_phone ?? contactPhone.trim());
+        setLocation(saved.location ?? location.trim());
         setAvatarUrl(saved.avatar_url ?? "");
         setSelectedPhoto(null);
         setPhotoPreview("");
@@ -183,6 +197,16 @@ export default function EditProfilePage() {
               <label htmlFor="username" className="mb-2 block text-sm font-bold">Username</label>
               <div className="flex items-center rounded-xl border border-[#d5dde2] px-4 focus-within:border-[#087b62]"><span className="text-sm text-[#687987]">@</span><input id="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))} maxLength={24} minLength={3} required className="w-full border-0 px-2 py-3 text-sm outline-none" placeholder="yourname" /></div>
               <p className="mt-1.5 text-xs text-[#687987]">3–24 characters. Letters, numbers, underscores, and hyphens. Must be unique.</p>
+            </div>
+            <div>
+              <label htmlFor="contactPhone" className="mb-2 block text-sm font-bold">Contact phone number <span className="font-normal text-[#687987]">(optional)</span></label>
+              <input id="contactPhone" type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} maxLength={30} className="w-full rounded-xl border border-[#d5dde2] px-4 py-3 text-sm outline-none focus:border-[#087b62]" placeholder="+234 800 000 0000" />
+              <p className="mt-1.5 text-xs text-[#687987]">This number will be visible on your profile to signed-in SPATDEL members.</p>
+            </div>
+            <div>
+              <label htmlFor="location" className="mb-2 block text-sm font-bold">Location <span className="font-normal text-[#687987]">(optional)</span></label>
+              <input id="location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} className="w-full rounded-xl border border-[#d5dde2] px-4 py-3 text-sm outline-none focus:border-[#087b62]" placeholder="e.g. Yaba, Lagos" />
+              <p className="mt-1.5 text-xs text-[#687987]">Use your area or city, not your exact home address.</p>
             </div>
             <div>
               <div className="mb-2 flex items-center justify-between"><label htmlFor="bio" className="text-sm font-bold">Bio</label><span className="text-xs text-[#687987]">{bio.length}/280</span></div>

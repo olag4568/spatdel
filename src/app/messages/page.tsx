@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -56,7 +56,8 @@ function displayName(profile: Profile | undefined) {
 
 export default function MessagesPage() {
   const router = useRouter();
-  const supabase = createClient();
+  // Keep one browser client for this page; recreating it each render restarts effects.
+  const [supabase] = useState(() => createClient());
 
   const [currentUserId, setCurrentUserId] = useState("");
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
@@ -74,7 +75,7 @@ export default function MessagesPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  async function loadConversations(userId: string) {
+  const loadConversations = useCallback(async (userId: string) => {
     const { data: memberships, error: membershipError } = await supabase
       .from("spatdel_chat_participants")
       .select("conversation_id")
@@ -123,7 +124,7 @@ export default function MessagesPage() {
     });
 
     setConversations(view);
-  }
+  }, [people, supabase]);
 
   useEffect(() => {
     let active = true;
@@ -237,6 +238,73 @@ export default function MessagesPage() {
 
     loadMessages();
     return () => { active = false; };
+  }, [activeConversationId, currentUserId, supabase]);
+
+
+  // Keep incoming messages and the conversation list fresh without requiring a page reload.
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const intervalId = window.setInterval(() => {
+      void loadConversations(currentUserId);
+    }, 8000);
+
+    return () => window.clearInterval(intervalId);
+  }, [currentUserId, loadConversations]);
+
+  // Poll the open conversation for incoming messages and read receipts.
+  // This works even if Supabase Realtime has not been enabled for these tables.
+  useEffect(() => {
+    if (!activeConversationId || !currentUserId) return;
+
+    let active = true;
+
+    async function pollOpenConversation() {
+      const { data, error: pollError } = await supabase
+        .from("spatdel_chat_messages")
+        .select("id, conversation_id, sender_id, body, created_at, read_at")
+        .eq("conversation_id", activeConversationId)
+        .order("created_at", { ascending: true });
+
+      if (!active) return;
+
+      if (pollError) {
+        setError(pollError.message);
+        return;
+      }
+
+      const latestMessages = (data ?? []) as MessageRow[];
+      setMessages((current) => {
+        if (
+          current.length === latestMessages.length &&
+          current.every((message, index) =>
+            message.id === latestMessages[index]?.id &&
+            message.read_at === latestMessages[index]?.read_at
+          )
+        ) {
+          return current;
+        }
+        return latestMessages;
+      });
+
+      const { error: readError } = await supabase
+        .from("spatdel_chat_messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("conversation_id", activeConversationId)
+        .neq("sender_id", currentUserId)
+        .is("read_at", null);
+
+      if (active && readError) setError(readError.message);
+    }
+
+    const intervalId = window.setInterval(() => {
+      void pollOpenConversation();
+    }, 3000);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
   }, [activeConversationId, currentUserId, supabase]);
 
   async function refresh() {

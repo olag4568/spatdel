@@ -212,14 +212,41 @@ export default function MessagesPage() {
   // Allow a profile's Message button to open this page with a target user.
   useEffect(() => {
     const targetId = searchParams.get("user");
-    if (!targetId || !currentUserId || people.length === 0 || handledProfileTarget === targetId) return;
-    const target = people.find((person) => person.id === targetId);
-    if (target) {
+    if (!targetId || !currentUserId || handledProfileTarget === targetId) return;
+
+    let active = true;
+    async function openTarget() {
+      const existing = people.find((person) => person.id === targetId);
+      if (existing) {
+        setHandledProfileTarget(targetId);
+        choosePerson(existing);
+        router.replace("/messages");
+        return;
+      }
+
+      // A member can have a profile link even when they are beyond the directory's initial page.
+      const { data, error: targetError } = await supabase.rpc(
+        "spatdel_get_public_profile",
+        { target_profile_id: targetId }
+      );
+      if (!active) return;
+      const target = (data ?? [])[0] as Profile | undefined;
+      if (targetError || !target) {
+        setError("Could not open this member for messaging. Please try searching for them in the directory.");
+        router.replace("/messages");
+        return;
+      }
+
+      setPeople((current) => current.some((person) => person.id === target.id) ? current : [...current, target]);
+      setDirectoryPeople((current) => current.some((person) => person.id === target.id) ? current : [...current, target]);
       setHandledProfileTarget(targetId);
       choosePerson(target);
       router.replace("/messages");
     }
-  }, [currentUserId, handledProfileTarget, people, router, searchParams]);
+
+    void openTarget();
+    return () => { active = false; };
+  }, [currentUserId, handledProfileTarget, people, router, searchParams, supabase]);
 
   // Search the secure server-side directory so results do not depend on direct
   // SELECT permissions for the profiles table.

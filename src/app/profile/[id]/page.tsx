@@ -14,7 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 type Role = "tenant" | "agent" | "landlord" | "admin" | string;
-type Profile = { id: string; full_name: string | null; role: Role };
+type Profile = { id: string; full_name: string | null; username: string | null; bio: string | null; avatar_url: string | null; role: Role };
 type Property = {
   id: string;
   title: string | null;
@@ -39,6 +39,7 @@ export default function PublicProfilePage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [currentUserId, setCurrentUserId] = useState("");
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -141,8 +142,8 @@ export default function PublicProfilePage() {
           <>
             <div className="rounded-3xl border border-[#dce3e7] bg-white p-6 shadow-sm sm:p-9">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4] text-[#102f46]">
-                  <CircleUserRound size={54} strokeWidth={1.5} />
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4] text-[#102f46]">
+                  {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.full_name || "Member"} className="h-full w-full object-cover" /> : <CircleUserRound size={54} strokeWidth={1.5} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -151,21 +152,23 @@ export default function PublicProfilePage() {
                     </h1>
                     <BadgeCheck className="text-[#087b62]" size={22} />
                   </div>
+                  {profile.username && <p className="mt-1 text-sm font-semibold text-[#687987]">@{profile.username}</p>}
                   <span className="mt-3 inline-flex rounded-full bg-[#e8f4ed] px-3 py-1.5 text-sm font-bold text-[#087b62]">
                     {roleLabel(profile.role)}
                   </span>
-                  <p className="mt-4 max-w-xl text-sm leading-6 text-[#687987]">
-                    SPATDEL member profile. You can contact this member directly through SPATDEL messaging.
+                  <p className="mt-4 max-w-xl whitespace-pre-wrap text-sm leading-6 text-[#687987]">
+                    {profile.bio?.trim() || "This member hasn't added a bio yet."}
                   </p>
                 </div>
-                {profile.id !== "" && (
-                  <button
-                    onClick={() => router.push(`/messages?user=${profile.id}`)}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#066b55]"
-                  >
-                    <MessageCircle size={17} /> Message
-                  </button>
-                )}
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {currentUserId === profile.id ? (
+                    <button onClick={() => router.push("/profile/edit")} className="rounded-full border border-[#d5dde2] px-5 py-3 text-sm font-bold hover:bg-[#f5f7f8]">Edit profile</button>
+                  ) : (
+                    <button onClick={() => router.push(`/messages?user=${profile.id}`)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#066b55]">
+                      <MessageCircle size={17} /> Message
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

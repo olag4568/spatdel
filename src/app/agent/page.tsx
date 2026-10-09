@@ -524,37 +524,14 @@ export default function AgentDashboard() {
 
         <aside className="space-y-5">
           <div className="rounded-3xl border border-[#dce3e7] bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div><h2 className="text-lg font-bold">Property enquiries</h2><p className="mt-1 text-sm text-[#687987]">Reply to tenants asking about your listings.</p></div>
-              <span className="rounded-full bg-[#e8f4ed] px-3 py-1 text-xs font-bold text-[#087b62]">{enquiries.length}</span>
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e8f4ed] text-[#087b62]"><MessageCircle size={22} /></div>
+              <div>
+                <h2 className="text-lg font-bold">Messages inbox</h2>
+                <p className="mt-1 text-sm leading-6 text-[#687987]">All tenant enquiries and your replies belong in one shared conversation. Open Messages to continue chats with tenants about your properties.</p>
+              </div>
             </div>
-            {loadingEnquiries ? <p className="py-6 text-sm text-[#687987]">Loading enquiries...</p> : enquiries.length === 0 ? (
-              <div className="mt-4 rounded-2xl bg-[#f5f7f8] p-4"><MessageCircle className="text-[#087b62]" size={22} /><p className="mt-2 text-sm font-bold">No enquiries yet</p><p className="mt-1 text-xs leading-5 text-[#687987]">When tenants contact you about your properties, their enquiries will appear here.</p></div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {enquiries.map((enquiry) => (
-                  <button key={enquiry.id} onClick={() => void openEnquiry(enquiry)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedEnquiryId === enquiry.id ? "border-[#087b62] bg-[#f0faf5]" : "border-[#e3e8eb] hover:border-[#087b62]/40"}`}>
-                    <div className="flex items-start justify-between gap-2"><p className="font-bold">{enquiry.subject}</p><span className="rounded-full bg-[#eef2f5] px-2 py-1 text-[10px] font-bold text-[#536776]">{enquiry.status}</span></div>
-                    <p className="mt-1 text-xs font-semibold text-[#087b62]">{enquiry.property_title}</p>
-                    <p className="mt-2 text-xs text-[#687987]">From {enquiry.tenant_name} · {new Date(enquiry.created_at).toLocaleDateString("en-NG")}</p>
-                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#536776]">{enquiry.message}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-            {selectedEnquiryId && (
-              <div className="mt-5 border-t border-[#e3e8eb] pt-5">
-                <div className="mb-3 flex items-center justify-between gap-2"><h3 className="font-bold">Conversation</h3><button onClick={() => { setSelectedEnquiryId(""); setEnquiryMessages([]); }} className="rounded-lg p-1 text-[#687987] hover:bg-[#f5f7f8]" aria-label="Close conversation"><X size={17} /></button></div>
-                <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl bg-[#f5f7f8] p-3">
-                  {enquiryMessages.map((message) => <div key={message.id} className={`max-w-[90%] rounded-xl p-3 ${message.sender_id === profile?.id ? "ml-auto bg-[#102f46] text-white" : "bg-white text-[#102f46]"}`}><p className="whitespace-pre-wrap break-words text-sm">{message.message}</p><p className="mt-2 text-[10px] opacity-65">{new Date(message.created_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}</p></div>)}
-                  {enquiryMessages.length === 0 && <p className="text-sm text-[#687987]">No messages found for this enquiry.</p>}
-                </div>
-                <form onSubmit={sendEnquiryReply} className="mt-3 flex gap-2">
-                  <input value={replyDraft} onChange={(event) => setReplyDraft(event.target.value.slice(0, 2000))} maxLength={2000} placeholder="Write a reply to the tenant..." className="min-w-0 flex-1 rounded-xl border border-[#d5dde2] px-3 py-3 text-sm outline-none focus:border-[#087b62]" />
-                  <button disabled={!replyDraft.trim() || sendingReply} className="flex items-center gap-2 rounded-xl bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={15} /> Reply</button>
-                </form>
-              </div>
-            )}
+            <button onClick={() => router.push("/messages")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#087b62] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#066851]"><MessageCircle size={17} /> Open main Messages</button>
           </div>
 
           <div className="rounded-3xl border border-[#dce3e7] bg-white p-5 shadow-sm sm:p-6">

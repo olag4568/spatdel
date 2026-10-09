@@ -148,7 +148,7 @@ export default function AgentDashboard() {
     const numericPrice = Number(price);
     const numericBeds = Number(beds);
     const numericBaths = Number(baths);
-    const numericSqm = Number(sqm);
+    const numericSqm = sqm.trim() === "" ? null : Number(sqm);
 
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
       setError("Enter a valid price greater than zero.");
@@ -157,8 +157,8 @@ export default function AgentDashboard() {
 
     if (!Number.isFinite(numericBeds) || numericBeds < 0 ||
         !Number.isFinite(numericBaths) || numericBaths < 0 ||
-        !Number.isFinite(numericSqm) || numericSqm <= 0) {
-      setError("Enter valid bedroom, bathroom, and floor-area values.");
+        (numericSqm !== null && (!Number.isFinite(numericSqm) || numericSqm <= 0))) {
+      setError("Enter valid bedroom, bathroom, and floor-area values. Floor area can be left blank.");
       return;
     }
 
@@ -198,7 +198,7 @@ export default function AgentDashboard() {
           price: formattedPrice,
           beds: numericBeds,
           baths: numericBaths,
-          sqm: `${numericSqm.toLocaleString("en-NG")} m²`,
+          sqm: numericSqm === null ? "Not specified" : `${numericSqm.toLocaleString("en-NG")} m²`,
           image: imageUrls[0] ?? "",
           images: imageUrls,
           flood: floodRisk,
@@ -326,8 +326,9 @@ export default function AgentDashboard() {
                 </select>
               </div>
               <div>
-                <label htmlFor="sqm" className="text-sm font-semibold">Floor area (m²) *</label>
-                <input id="sqm" required type="number" min="1" step="0.1" value={sqm} onChange={(e) => setSqm(e.target.value)} placeholder="e.g. 95" className="mt-2 w-full rounded-xl border border-[#d5dde2] px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                <label htmlFor="sqm" className="text-sm font-semibold">Floor area (m²) <span className="font-normal text-[#8a969f]">(optional)</span></label>
+                <input id="sqm" type="number" min="1" step="0.1" value={sqm} onChange={(e) => setSqm(e.target.value)} placeholder="Leave blank if unknown" className="mt-2 w-full rounded-xl border border-[#d5dde2] px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                <p className="mt-1 text-xs text-[#687987]">Not sure of the floor area? You can skip this field.</p>
               </div>
             </div>
 

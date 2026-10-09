@@ -2180,6 +2180,26 @@ export default function Home() {
               </p>
             </div>
           </div>
+
+          <div className="mt-10 rounded-2xl bg-[#102f46] p-6 text-white sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-8">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-wide text-[#19e58f]">
+                <MessageSquare size={13} /> Join the conversation
+              </span>
+              <h3 className="mt-4 text-xl font-black sm:text-2xl">
+                Your community has a lot to say.
+              </h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">
+                Publish posts, reply to housing questions, or chat live with tenants, agents and landlords.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/community")}
+              className="mt-5 inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#19e58f] px-5 py-3 text-sm font-black text-[#071b18] transition hover:-translate-y-0.5 sm:mt-0"
+            >
+              Open Community Pulse <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
       </section>
 

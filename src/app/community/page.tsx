@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Clock3, LoaderCircle, MessageCircle, MessagesSquare, Send, ShieldAlert, Users } from "lucide-react";
@@ -10,10 +11,9 @@ type Post = { id: string; author_id: string; body: string; created_at: string };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; author_id: string; body: string; created_at: string };
 
-const supabase = createClient();
-
 export default function CommunityPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [userId, setUserId] = useState("");
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [posts, setPosts] = useState<Post[]>([]);

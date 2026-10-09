@@ -270,6 +270,8 @@ export default function Home() {
       const { data, error } = await supabase
         .from("properties")
         .select("*")
+        // Public browsing must never show listings awaiting admin approval.
+        .eq("verified", true)
         .order("created_at", { ascending: false });
 
       if (!mounted) return;

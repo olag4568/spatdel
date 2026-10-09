@@ -34,6 +34,7 @@ type Enquiry = {
   id: string;
   property_id: string;
   tenant_id: string;
+  conversation_id?: string | null;
   subject: string;
   message: string;
   status: string;
@@ -137,7 +138,7 @@ export default function AgentDashboard() {
         const propertyIds = ownListings.map((listing) => listing.id);
         const { data: enquiryRows, error: enquiryError } = await supabase
           .from("property_enquiries")
-          .select("id, property_id, tenant_id, subject, message, status, created_at")
+          .select("id, property_id, tenant_id, conversation_id, subject, message, status, created_at")
           .in("property_id", propertyIds)
           .order("created_at", { ascending: false });
 
@@ -204,23 +205,48 @@ export default function AgentDashboard() {
     setNotice("");
     setSendingReply(true);
 
-    const { data, error: insertError } = await supabase
-      .from("property_messages")
-      .insert({ enquiry_id: enquiry.id, sender_id: profile.id, message })
-      .select("id, enquiry_id, sender_id, message, created_at, read_at")
-      .single();
+    try {
+      // Older enquiries may predate the shared-chat link. Connect them on first reply.
+      let conversationId = enquiry.conversation_id || null;
+      if (!conversationId) {
+        const { data: chatId, error: chatError } = await supabase.rpc("spatdel_start_chat", {
+          target_user_id: enquiry.tenant_id,
+          related_property_id: enquiry.property_id,
+          first_message: null,
+        });
 
-    if (insertError) {
-      setError("Reply could not be sent. Check the property_messages insert policy.");
+        if (chatError || !chatId) {
+          throw new Error(chatError?.message || "Could not connect this enquiry to Messages.");
+        }
+
+        conversationId = chatId as string;
+        const { error: linkError } = await supabase
+          .from("property_enquiries")
+          .update({ conversation_id: conversationId })
+          .eq("id", enquiry.id);
+
+        if (linkError) throw new Error("The chat opened, but the enquiry could not be linked.");
+      }
+
+      const { data, error: insertError } = await supabase
+        .from("property_messages")
+        .insert({ enquiry_id: enquiry.id, sender_id: profile.id, message })
+        .select("id, enquiry_id, sender_id, message, created_at, read_at")
+        .single();
+
+      if (insertError) throw new Error(insertError.message);
+
+      setEnquiryMessages((current) => [...current, data as EnquiryMessage]);
+      setReplyDraft("");
+      setEnquiries((current) => current.map((item) => item.id === enquiry.id
+        ? { ...item, status: "responded", conversation_id: conversationId }
+        : item));
+      setNotice("Reply sent. It is now connected to the tenant's SPATDEL Messages inbox.");
+    } catch (replyError) {
+      setError(replyError instanceof Error ? replyError.message : "Reply could not be sent.");
+    } finally {
       setSendingReply(false);
-      return;
     }
-
-    setEnquiryMessages((current) => [...current, data as EnquiryMessage]);
-    setReplyDraft("");
-    setEnquiries((current) => current.map((item) => item.id === enquiry.id ? { ...item, status: "responded" } : item));
-    setNotice("Reply sent to the tenant.");
-    setSendingReply(false);
   }
 
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {

@@ -54,6 +54,7 @@ export default function PublicProfilePage() {
         router.replace("/login");
         return;
       }
+      setCurrentUserId(authData.user.id);
 
       const profileId = params.id;
       if (!profileId) {

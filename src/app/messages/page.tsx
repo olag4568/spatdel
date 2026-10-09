@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Check,
@@ -56,6 +56,7 @@ function displayName(profile: Profile | undefined) {
 
 export default function MessagesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   // Keep one browser client for this page; recreating it each render restarts effects.
   const [supabase] = useState(() => createClient());
 
@@ -71,6 +72,7 @@ export default function MessagesPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [directoryOpen, setDirectoryOpen] = useState(false);
+  const [handledProfileTarget, setHandledProfileTarget] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
@@ -206,6 +208,18 @@ export default function MessagesPage() {
     initialise();
     return () => { active = false; };
   }, [router, supabase]);
+
+  // Allow a profile's Message button to open this page with a target user.
+  useEffect(() => {
+    const targetId = searchParams.get("user");
+    if (!targetId || !currentUserId || people.length === 0 || handledProfileTarget === targetId) return;
+    const target = people.find((person) => person.id === targetId);
+    if (target) {
+      setHandledProfileTarget(targetId);
+      choosePerson(target);
+      router.replace("/messages");
+    }
+  }, [currentUserId, handledProfileTarget, people, router, searchParams]);
 
   // Search the secure server-side directory so results do not depend on direct
   // SELECT permissions for the profiles table.
@@ -470,10 +484,13 @@ export default function MessagesPage() {
                 <p className="px-1 pb-2 pt-4 text-xs font-bold uppercase tracking-wide text-[#8a969f]">SPATDEL member profiles</p>
                 <div className="max-h-[55vh] space-y-1 overflow-y-auto">
                   {filteredPeople.map((person) => (
-                    <button key={person.id} onClick={() => choosePerson(person)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-[#f5f7f8]">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4] text-[#102f46]"><CircleUserRound size={20} /></div>
-                      <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{displayName(person)}</p><p className="mt-0.5 text-xs text-[#087b62]">{roleLabel(person.role)}</p></div>
-                    </button>
+                    <div key={person.id} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-[#f5f7f8]">
+                      <button onClick={() => router.push(`/profile/${person.id}`)} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left" aria-label={`View ${displayName(person)}'s profile`}>
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4] text-[#102f46]"><CircleUserRound size={20} /></div>
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{displayName(person)}</p><p className="mt-0.5 text-xs text-[#087b62]">{roleLabel(person.role)} · View profile</p></div>
+                      </button>
+                      <button onClick={() => choosePerson(person)} className="shrink-0 rounded-full bg-[#102f46] px-3 py-2 text-xs font-bold text-white hover:bg-[#183d57]">Message</button>
+                    </div>
                   ))}
                   {filteredPeople.length === 0 && <p className="p-4 text-sm text-[#687987]">No matching users found.</p>}
                 </div>
@@ -497,8 +514,10 @@ export default function MessagesPage() {
               <>
                 <div className="flex items-center gap-3 border-b border-[#edf0f2] px-4 py-4 sm:px-6">
                   <button onClick={() => { setActiveConversationId(""); setNewChatTargetId(""); setDirectoryOpen(true); }} className="rounded-lg p-2 hover:bg-[#f5f7f8] md:hidden" aria-label="Back to chats"><ArrowLeft size={17} /></button>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e8f0f4]"><CircleUserRound size={22} /></div>
-                  <div className="min-w-0 flex-1"><p className="truncate font-bold">{activeChat?.otherName ?? displayName(newChatPerson)}</p><p className="mt-0.5 text-xs font-semibold text-[#087b62]">{roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")}</p></div>
+                  <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f0f4] hover:ring-2 hover:ring-[#087b62]" aria-label="Open this person's profile"><CircleUserRound size={22} /></button>
+                  <button onClick={() => { const targetId = activeChat?.otherUserId ?? newChatPerson?.id; if (targetId) router.push(`/profile/${targetId}`); }} className="min-w-0 flex-1 text-left">
+                    <p className="truncate font-bold hover:underline">{activeChat?.otherName ?? displayName(newChatPerson)}</p><p className="mt-0.5 text-xs font-semibold text-[#087b62]">{roleLabel(activeChat?.otherRole ?? newChatPerson?.role ?? "member")} · View profile</p>
+                  </button>
                   <span className="hidden items-center gap-1 rounded-full bg-[#f5f7f8] px-3 py-1.5 text-[10px] font-bold text-[#687987] sm:inline-flex"><ShieldCheck size={13} /> Role verified from profile</span>
                 </div>
 

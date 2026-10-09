@@ -765,13 +765,30 @@ export default function AccountPage() {
               </p>
             </div>
 
-            <button
-              onClick={goHome}
-              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#102f46] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#183d57]"
-            >
-              <Search size={17} />
-              Find a Home
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => router.push("/profile/edit")}
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-[#087b62]/30 bg-[#e8f4ed] px-5 py-3 text-sm font-bold text-[#087b62] transition hover:bg-[#dff0e7]"
+              >
+                <Pencil size={17} />
+                Edit My Profile
+              </button>
+              <button
+                onClick={() => user?.id && router.push(`/profile/${user.id}`)}
+                disabled={!user?.id}
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d5dde2] bg-white px-5 py-3 text-sm font-bold text-[#102f46] transition hover:bg-[#f1f4f5] disabled:opacity-50"
+              >
+                <User size={17} />
+                View My Profile
+              </button>
+              <button
+                onClick={goHome}
+                className="inline-flex w-fit items-center gap-2 rounded-full bg-[#102f46] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#183d57]"
+              >
+                <Search size={17} />
+                Find a Home
+              </button>
+            </div>
           </div>
         </div>
 

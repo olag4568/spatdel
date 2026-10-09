@@ -878,12 +878,21 @@ export default function Home() {
 
   function getDisplayedPrice(price: string) {
     if (userRole !== "tenant" || !rewardAmount) return price;
-    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
+    const match = price.match(/(?:₦|NGN\\s*)?\\s*([\\d,]+(?:\\.\\d+)?)/i);
     if (!match) return price;
     const originalAmount = Number(match[1].replace(/,/g, ""));
     if (!Number.isFinite(originalAmount)) return price;
     const discountedAmount = Math.max(0, originalAmount - rewardAmount);
     return price.replace(match[0], "₦" + discountedAmount.toLocaleString("en-NG"));
+  }
+
+  function getOriginalPrice(price: string) {
+    if (userRole !== "tenant" || !rewardAmount) return null;
+    const match = price.match(/(?:₦|NGN\\s*)?\\s*([\\d,]+(?:\\.\\d+)?)/i);
+    if (!match) return null;
+    const originalAmount = Number(match[1].replace(/,/g, ""));
+    if (!Number.isFinite(originalAmount)) return null;
+    return "₦" + originalAmount.toLocaleString("en-NG");
   }
 
   function getUserName() {
@@ -1483,7 +1492,12 @@ export default function Home() {
                   <p className="mt-2 text-sm font-black">
                     {properties[0]
                       ? getDisplayedPrice(properties[0].price)
-                      : "₦1,200,000"} / yr
+                      : "₦1,200,000"}
+                    {properties[0] && getOriginalPrice(properties[0].price) && (
+                      <span className="ml-2 text-xs font-semibold text-[#9aa4aa] line-through decoration-2">
+                        {getOriginalPrice(properties[0].price)}
+                      </span>
+                    )}{" "} / yr
                   </p>
 
                   <div className="mt-3 flex items-center gap-2 text-[9px] text-[#63717a]">
@@ -1961,6 +1975,11 @@ export default function Home() {
                         {
                           getDisplayedPrice(property.price)
                         }
+                        {getOriginalPrice(property.price) && (
+                          <span className="ml-2 text-xs font-semibold text-[#9aa4aa] line-through decoration-2">
+                            {getOriginalPrice(property.price)}
+                          </span>
+                        )}
 
                         <span className="text-[9px] font-medium text-[#71808a]">
                           {" "}
@@ -2464,6 +2483,11 @@ export default function Home() {
                     {
                       getDisplayedPrice(selectedProperty.price)
                     }
+                    {getOriginalPrice(selectedProperty.price) && (
+                      <span className="ml-2 text-sm font-semibold text-[#9aa4aa] line-through decoration-2">
+                        {getOriginalPrice(selectedProperty.price)}
+                      </span>
+                    )}
                   </p>
 
                   <p className="text-xs text-[#71808a]">

@@ -75,3 +75,27 @@ DROP TRIGGER IF EXISTS spatdel_sync_chat_message_to_enquiry ON public.spatdel_ch
 CREATE TRIGGER spatdel_sync_chat_message_to_enquiry
 AFTER INSERT ON public.spatdel_chat_messages
 FOR EACH ROW EXECUTE FUNCTION public.sp_atdel_sync_chat_message_to_enquiry();
+
+-- When an older enquiry is linked later, copy its existing history into the chat.
+CREATE OR REPLACE FUNCTION public.sp_atdel_backfill_enquiry_chat_history()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.conversation_id IS NULL AND NEW.conversation_id IS NOT NULL THEN
+    INSERT INTO public.spatdel_chat_messages (conversation_id, sender_id, body, created_at)
+    SELECT NEW.conversation_id, pm.sender_id, pm.message, pm.created_at
+    FROM public.property_messages pm
+    WHERE pm.enquiry_id = NEW.id
+    ORDER BY pm.created_at ASC;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS spatdel_backfill_enquiry_chat_history ON public.property_enquiries;
+CREATE TRIGGER spatdel_backfill_enquiry_chat_history
+AFTER UPDATE OF conversation_id ON public.property_enquiries
+FOR EACH ROW EXECUTE FUNCTION public.sp_atdel_backfill_enquiry_chat_history();

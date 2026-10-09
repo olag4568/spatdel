@@ -454,23 +454,19 @@ export default function Home() {
     const targetUserId = property.owner_id || property.submitted_by;
 
     if (!targetUserId) {
-      setEnquiryError("This property has no assigned agent or landlord yet.");
-      setEnquirySubject(`Enquiry about ${property.title}`);
-      setEnquiryMessage("");
-      setEnquiryMode(true);
+      window.alert("This property has no assigned agent or landlord yet, so SPATDEL cannot open the correct conversation. Please contact support or try another listing.");
       return;
     }
 
     if (targetUserId === user.id) {
-      setEnquiryError("You cannot enquire about your own listing.");
-      setEnquirySubject(`Enquiry about ${property.title}`);
-      setEnquiryMessage("");
-      setEnquiryMode(true);
+      window.alert("You cannot enquire about your own listing.");
       return;
     }
 
+    // Contact always opens the shared Messages inbox, never the old inline chat box.
     setEnquiryMode(false);
     setChatMode(false);
+    setSelectedProperty(null);
     router.push(
       `/messages?user=${encodeURIComponent(targetUserId)}&property=${encodeURIComponent(property.id)}`
     );

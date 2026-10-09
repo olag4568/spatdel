@@ -61,19 +61,18 @@ type PropertyMessage = {
 
 const supabase = createClient();
 
-const leaderboard = [
-  { rank: 1, name: "Chioma O.", points: "12,400" },
-  { rank: 2, name: "Tunde A.", points: "10,850" },
-  { rank: 3, name: "Funmi K.", points: "9,100" },
-];
-
 export default function Home() {
   const router = useRouter();
 
   const [mobileMenu, setMobileMenu] = useState(false);
   const [spinning, setSpinning] = useState(false);
-  const [points, setPoints] = useState(4850);
   const [wheelRotation, setWheelRotation] = useState(0);
+  const [rewardAmount, setRewardAmount] = useState<number | null>(null);
+  const [rewardSpunAt, setRewardSpunAt] = useState<string | null>(null);
+  const [rewardLoading, setRewardLoading] = useState(false);
+  const [rewardStatusLoaded, setRewardStatusLoaded] = useState(false);
+  const [rewardError, setRewardError] = useState("");
+  const [rewardNotice, setRewardNotice] = useState("");
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
@@ -205,6 +204,55 @@ export default function Home() {
       mounted = false;
     };
   }, [user]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOAD TENANT'S LIFETIME REWARD
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadTenantReward() {
+      if (!user || userRole !== "tenant") {
+        setRewardAmount(null);
+        setRewardSpunAt(null);
+        setRewardLoading(false);
+        setRewardStatusLoaded(!user || !roleLoading);
+        return;
+      }
+
+      setRewardLoading(true);
+      setRewardStatusLoaded(false);
+      setRewardError("");
+
+      const { data, error } = await supabase
+        .from("tenant_rewards")
+        .select("reward_amount, spun_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      if (error) {
+        console.error("Failed to load tenant reward:", error);
+        setRewardError("We couldn't load your reward status. Please refresh and try again.");
+      } else {
+        setRewardAmount(data?.reward_amount ?? null);
+        setRewardSpunAt(data?.spun_at ?? null);
+      }
+
+      setRewardLoading(false);
+      setRewardStatusLoaded(true);
+    }
+
+    loadTenantReward();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, userRole, roleLoading]);
 
   /*
   |--------------------------------------------------------------------------
@@ -753,45 +801,89 @@ export default function Home() {
       });
   }
 
-  function spinWheel() {
+  async function spinWheel() {
     if (spinning) return;
 
+    if (!user) {
+      setRewardError("Sign in with a tenant account to use your one-time spin.");
+      router.push("/login?next=/#spin");
+      return;
+    }
+
+    if (userRole !== "tenant") {
+      setRewardError("Only tenant accounts can claim this reward.");
+      return;
+    }
+
+    if (!rewardStatusLoaded || rewardLoading) {
+      setRewardError("Checking your lifetime spin status. Please wait.");
+      return;
+    }
+
+    if (rewardAmount !== null || rewardSpunAt) {
+      setRewardNotice("You've already used your one-time lifetime spin.");
+      return;
+    }
+
     setSpinning(true);
+    setRewardError("");
+    setRewardNotice("");
 
-    const extraRotation =
-      1440 +
-      Math.floor(Math.random() * 360);
+    const { data, error } = await supabase.rpc("claim_tenant_spin_reward");
 
-    setWheelRotation(
-      (current) =>
-        current + extraRotation
-    );
-
-    setTimeout(() => {
-      const rewards = [
-        500,
-        1000,
-        2500,
-        0,
-        750,
-        1500,
-      ];
-
-      const reward =
-        rewards[
-          Math.floor(
-            Math.random() *
-              rewards.length
-          )
-        ];
-
-      setPoints(
-        (current) =>
-          current + reward
+    if (error) {
+      console.error("Failed to claim lifetime spin reward:", error);
+      setRewardError(
+        error.message?.includes("Only tenant")
+          ? "Only tenant accounts can claim this reward."
+          : "Your spin could not be saved. Please try again."
       );
+      setSpinning(false);
+      return;
+    }
 
+    const result = Array.isArray(data) ? data[0] : data;
+    const reward = Number(result?.reward_amount);
+    const spunAt = result?.spun_at ?? null;
+
+    if (![5000, 10000, 15000, 20000, 25000, 30000].includes(reward) || !spunAt) {
+      setRewardError("We couldn't confirm your reward. Refresh and check your reward status.");
+      setSpinning(false);
+      return;
+    }
+
+    if (result?.already_spun) {
+      setRewardAmount(reward);
+      setRewardSpunAt(spunAt);
+      setRewardNotice("Your lifetime spin has already been used. Your discount is saved.");
+      setSpinning(false);
+      return;
+    }
+
+    const rewards = [5000, 10000, 15000, 20000, 25000, 30000];
+    const rewardIndex = rewards.indexOf(reward);
+    const targetRotation = (360 - rewardIndex * 60) % 360;
+    setWheelRotation((current) => current + 1440 + targetRotation);
+
+    window.setTimeout(() => {
+      setRewardAmount(reward);
+      setRewardSpunAt(spunAt);
+      setRewardNotice(
+        "Congratulations! You won ₦" + reward.toLocaleString("en-NG") +
+        " off every available house's displayed price."
+      );
       setSpinning(false);
     }, 1900);
+  }
+
+  function getDisplayedPrice(price: string) {
+    if (userRole !== "tenant" || !rewardAmount) return price;
+    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
+    if (!match) return price;
+    const originalAmount = Number(match[1].replace(/,/g, ""));
+    if (!Number.isFinite(originalAmount)) return price;
+    const discountedAmount = Math.max(0, originalAmount - rewardAmount);
+    return price.replace(match[0], "₦" + discountedAmount.toLocaleString("en-NG"));
   }
 
   function getUserName() {
@@ -1478,6 +1570,8 @@ export default function Home() {
         </div>
       </section>
 
+      {/* SPIN & EARN — visible to guests and tenants only */}
+      {(!authLoading && (!user || (!roleLoading && userRole === "tenant"))) && (
       {/* SPIN & EARN */}
       <section
         id="spin"
@@ -1490,12 +1584,11 @@ export default function Home() {
             </span>
 
             <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
-              Daily Rent Wheel – Spin to Earn
+              One-Time Rent Discount
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[#71808a] sm:text-base">
-              Earn points daily to unlock rent credits,
-              discounts and other rewards on SPATDEL.
+              Spin once in your lifetime to win a direct naira discount. Your reward is saved to your tenant account and reduces every available house's displayed price.
             </p>
           </div>
 
@@ -1544,61 +1637,61 @@ export default function Home() {
 
                   <div className="absolute left-1/2 top-[12%] -translate-x-1/2 text-center text-white drop-shadow-md">
                     <div className="text-[16px] font-black leading-none">
-                      +500
+                      ₦5K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      POINTS
+                      NAIRA OFF
                     </div>
                   </div>
 
                   <div className="absolute right-[11%] top-[29%] w-[62px] -rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[15px] font-black leading-none">
-                      +1K
+                      ₦10K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      POINTS
+                      NAIRA OFF
                     </div>
                   </div>
 
                   <div className="absolute right-[10%] bottom-[26%] w-[65px] rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[14px] font-black leading-none">
-                      +2.5K
+                      ₦15K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      POINTS
+                      NAIRA OFF
                     </div>
                   </div>
 
                   <div className="absolute bottom-[11%] left-1/2 w-[80px] -translate-x-1/2 text-center text-white drop-shadow-md">
                     <div className="text-[12px] font-black leading-none">
-                      FREE
+                      ₦20K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      RENT CREDIT
+                      NAIRA OFF
                     </div>
                   </div>
 
                   <div className="absolute bottom-[26%] left-[9%] w-[65px] -rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[15px] font-black leading-none">
-                      +750
+                      ₦25K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      POINTS
+                      NAIRA OFF
                     </div>
                   </div>
 
                   <div className="absolute left-[10%] top-[29%] w-[62px] rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[15px] font-black leading-none">
-                      +1.5K
+                      ₦30K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      POINTS
+                      NAIRA OFF
                     </div>
                   </div>
 
@@ -1608,126 +1701,81 @@ export default function Home() {
                 <div className="absolute inset-0 z-30 flex items-center justify-center">
                   <button
                     onClick={spinWheel}
-                    disabled={spinning}
+                    disabled={
+                      spinning ||
+                      rewardLoading ||
+                      (Boolean(user) && userRole === "tenant" && (rewardAmount !== null || Boolean(rewardSpunAt)))
+                    }
                     className="flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#19e58f] bg-[#071b18] text-center text-[10px] font-black text-[#19e58f] shadow-[0_4px_20px_rgba(0,0,0,0.45)] transition duration-200 hover:scale-105 hover:border-white disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-80"
                   >
                     {spinning
                       ? "SPINNING..."
-                      : "SPIN NOW"}
+                      : !user
+                        ? "SIGN IN"
+                        : rewardAmount !== null || rewardSpunAt
+                          ? "USED"
+                          : rewardLoading || !rewardStatusLoaded
+                            ? "CHECKING"
+                            : "SPIN NOW"}
                   </button>
                 </div>
               </div>
 
               <p className="mt-7 text-center text-[10px] text-[#71808a]">
-                Daily spin resets at 12:00 AM WAT.
+                One spin per tenant account for life. No daily reset.
               </p>
+              {rewardError && (
+                <p role="alert" className="mt-3 max-w-xs text-center text-xs font-semibold text-red-600">
+                  {rewardError}
+                </p>
+              )}
+              {rewardNotice && (
+                <p role="status" className="mt-3 max-w-xs text-center text-xs font-semibold text-[#087b62]">
+                  {rewardNotice}
+                </p>
+              )}
             </div>
 
             <div>
               <div className="rounded-xl bg-[#f8f7f2] p-5">
-                <div className="flex items-center justify-between gap-5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#102f46] text-xs font-black text-white">
-                      {user
-                        ? getUserInitials()
-                        : "YO"}
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-bold">
-                        {user
-                          ? getUserName()
-                          : "Your Balance"}
-                      </p>
-
-                      <p className="text-[9px] text-[#71808a]">
-                        {user
-                          ? "SPATDEL account"
-                          : "Demo account"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-xl font-black text-[#f05a00]">
-                      {points.toLocaleString()} Pts
-                    </p>
-
-                    <p className="text-[9px] font-semibold text-[#087b62]">
-                      ₦24,250 Value
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-between text-[10px] font-bold">
-                  <span>
-                    Next Milestone
-                  </span>
-
-                  <span className="text-[#087b62]">
-                    97%
-                  </span>
-                </div>
-
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#dce5e1]">
-                  <div className="h-full w-[97%] rounded-full bg-[#19d98b]" />
-                </div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#71808a]">
+                  Your lifetime rent discount
+                </p>
+                <p className="mt-3 text-3xl font-black text-[#f05a00]">
+                  {rewardAmount !== null
+                    ? "₦" + rewardAmount.toLocaleString("en-NG")
+                    : "Not claimed yet"}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-[#71808a]">
+                  {rewardAmount !== null
+                    ? "This discount is applied to every available house's displayed price while you're signed in as a tenant."
+                    : "Spin once to unlock a discount that stays on your account for life."}
+                </p>
+                {rewardSpunAt && (
+                  <p className="mt-3 text-[10px] font-semibold text-[#087b62]">
+                    Claimed on {new Date(rewardSpunAt).toLocaleDateString("en-NG")}
+                  </p>
+                )}
+                {rewardLoading && (
+                  <p className="mt-3 text-[10px] text-[#71808a]">Loading your reward...</p>
+                )}
               </div>
 
-              <div className="mt-8">
-                <h3 className="text-sm font-black">
-                  Weekly Lagos Leaderboard
-                </h3>
-
-                <div className="mt-3 space-y-2">
-                  {leaderboard.map(
-                    (person) => (
-                      <div
-                        key={
-                          person.rank
-                        }
-                        className="flex items-center justify-between rounded-lg border border-[#102f46]/10 bg-white px-4 py-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-5 text-xs font-bold text-[#71808a]">
-                            #{person.rank}
-                          </span>
-
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e8eeeb] text-[9px] font-black">
-                            {person.name
-                              .split(
-                                " "
-                              )
-                              .map(
-                                (
-                                  word
-                                ) =>
-                                  word[0]
-                              )
-                              .join("")}
-                          </div>
-
-                          <span className="text-xs font-semibold">
-                            {person.name}
-                          </span>
-                        </div>
-
-                        <span className="text-xs font-black text-[#087b62]">
-                          {
-                            person.points
-                          }{" "}
-                          Pts
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
+              <div className="mt-8 rounded-xl border border-[#102f46]/10 bg-white p-5">
+                <h3 className="text-sm font-black">How it works</h3>
+                <ol className="mt-3 list-decimal space-y-2 pl-5 text-xs leading-5 text-[#71808a]">
+                  <li>Spin once using your tenant account.</li>
+                  <li>Your naira discount is saved permanently.</li>
+                  <li>The discount appears on every available house's displayed price.</li>
+                </ol>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      )}
+      
       {/* PROPERTIES */}
       <section
         id="homes"
@@ -1910,7 +1958,7 @@ export default function Home() {
 
                       <p className="mt-4 text-lg font-black text-[#087b62]">
                         {
-                          property.price
+                          getDisplayedPrice(property.price)
                         }
 
                         <span className="text-[9px] font-medium text-[#71808a]">
@@ -2413,7 +2461,7 @@ export default function Home() {
                 <div className="sm:text-right">
                   <p className="text-2xl font-black text-[#087b62]">
                     {
-                      selectedProperty.price
+                      getDisplayedPrice(selectedProperty.price)
                     }
                   </p>
 

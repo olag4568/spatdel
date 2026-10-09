@@ -1557,6 +1557,14 @@ export default function AccountPage() {
                   </div>
                 </div>
 
+                <button
+                  onClick={() => router.push("/profile/edit")}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#087b62]/25 bg-[#e8f4ed] py-3 text-sm font-bold text-[#087b62] transition hover:bg-[#dff0e7]"
+                >
+                  <User size={16} />
+                  Edit public profile · Username, photo and bio
+                </button>
+
                 {profileMessage && (
                   <p className="mt-3 text-sm font-semibold text-[#28734b]">
                     {profileMessage}

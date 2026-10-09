@@ -1415,14 +1415,21 @@ export default function AccountPage() {
 
                 <div>
                   <p className="font-semibold">
-                    Chat is coming next
+                    Open your messages
                   </p>
 
                   <p className="mt-1 text-xs text-[#738391]">
-                    Your property conversations will appear here.
+                    Chat with tenants, agents, landlords, and admins. Each person's role is shown in the conversation.
                   </p>
                 </div>
               </div>
+              <button
+                onClick={() => router.push("/messages")}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#102f46] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#183d57]"
+              >
+                <MessageSquare size={16} />
+                Open Messages
+              </button>
             </div>
           </div>
 

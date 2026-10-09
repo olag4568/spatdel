@@ -28,3 +28,8 @@ The website now has:
 - Universal direct messaging at `/messages`. Signed-in users can start chats with tenants, agents, landlords, or admins; each message shows the sender's role from their SPATDEL profile. The landing-page profile menu and tenant dashboard link to Messages.
 
 **Important:** the migration must be run manually in Supabase SQL Editor before these features can work. The website code has not yet been verified against your live Supabase database or built locally.
+
+
+### Searchable chat member directory
+
+Run `supabase/migrations/20261012000000_chat_profile_directory.sql` in the Supabase SQL Editor after the role-aware chat migration. It creates the authenticated `spatdel_search_profiles` RPC so signed-in users can search other SPATDEL profile names and filter the directory by Tenant, Agent, Landlord, or Admin without requiring broad direct access to the profiles table.

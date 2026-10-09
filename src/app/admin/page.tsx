@@ -20,6 +20,7 @@ import {
   BedDouble,
   Bath,
   Ruler,
+  Trash2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,6 +47,7 @@ type Property = {
   verified?: boolean | null;
   location?: string | null;
   type?: string | null;
+  listing_purpose?: "rent" | "sale" | null;
   flood_risk?: string | null;
   power_hours?: string | null;
   description?: string | null;
@@ -143,7 +145,7 @@ export default function AdminDashboard() {
       await supabase
         .from("properties")
         .select(
-          "id, title, price, beds, baths, sqm, image, images, flood, power, verified, approval_status, submitted_by, reviewed_by, reviewed_at, review_note, location, type, flood_risk, power_hours, description, created_at"
+          "id, title, price, beds, baths, sqm, image, images, flood, power, verified, approval_status, submitted_by, reviewed_by, reviewed_at, review_note, location, type, listing_purpose, flood_risk, power_hours, description, created_at"
         )
         .order("created_at", { ascending: false });
 
@@ -213,6 +215,33 @@ export default function AdminDashboard() {
     setTimeout(() => {
       setSuccess("");
     }, 3000);
+  }
+
+  async function deleteProperty(property: Property) {
+    const confirmed = window.confirm(
+      `Delete "${property.title}" permanently? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setSuccess("");
+    setUpdatingPropertyId(property.id);
+
+    const { error: deleteError } = await supabase
+      .from("properties")
+      .delete()
+      .eq("id", property.id);
+
+    if (deleteError) {
+      setError(`Could not delete property: ${deleteError.message}`);
+      setUpdatingPropertyId(null);
+      return;
+    }
+
+    setProperties((current) => current.filter((item) => item.id !== property.id));
+    setSelectedProperty((current) => current?.id === property.id ? null : current);
+    setSuccess("Property deleted successfully.");
+    setUpdatingPropertyId(null);
   }
 
   async function togglePropertyVerification(
@@ -943,8 +972,11 @@ export default function AdminDashboard() {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-sm text-[#71808a]">
-                        {property.type || "Property"}
+                      <td className="px-5 py-4">
+                        <div className="text-sm text-[#71808a]">{property.type || "Property"}</div>
+                        <span className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${property.listing_purpose === "sale" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}>
+                          {property.listing_purpose === "sale" ? "For sale" : "For rent"}
+                        </span>
                       </td>
 
                       <td className="px-5 py-4">
@@ -975,11 +1007,20 @@ export default function AdminDashboard() {
                           </button>
 
                           <button
+                            onClick={() => deleteProperty(property)}
+                            disabled={updatingPropertyId === property.id}
+                            title="Delete property"
+                            aria-label={`Delete ${property.title}`}
+                            className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+
+                          <button
                             onClick={() =>
                               togglePropertyVerification(
                                 property
-                              )
-                            }
+                              )}
                             disabled={
                               updatingPropertyId ===
                               property.id
@@ -1173,8 +1214,7 @@ export default function AdminDashboard() {
               <div className="flex flex-col justify-between gap-3 sm:flex-row">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-[#087b62]">
-                    {selectedProperty.type ||
-                      "Property"}
+                    {selectedProperty.listing_purpose === "sale" ? "For sale" : "For rent"} · {selectedProperty.type || "Property"}
                   </p>
 
                   <h2 className="mt-1 text-2xl font-black">
@@ -1266,6 +1306,14 @@ export default function AdminDashboard() {
               )}
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={() => deleteProperty(selectedProperty)}
+                  disabled={updatingPropertyId === selectedProperty.id}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 size={16} />
+                  Delete property
+                </button>
                 <button
                   onClick={() =>
                     togglePropertyVerification(

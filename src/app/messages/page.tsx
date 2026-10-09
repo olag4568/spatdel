@@ -209,6 +209,7 @@ export default function MessagesPage() {
     async function loadMessages() {
       if (!activeConversationId || !currentUserId) {
         setMessages([]);
+        setLoadingMessages(false);
         return;
       }
 

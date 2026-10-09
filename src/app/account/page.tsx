@@ -670,12 +670,21 @@ export default function AccountPage() {
 
   function getDisplayedPrice(price: string) {
     if (userRole !== "tenant" || !rewardAmount) return price;
-    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
+    const match = price.match(/(?:₦|NGN\\s*)?\\s*([\\d,]+(?:\\.\\d+)?)/i);
     if (!match) return price;
     const originalAmount = Number(match[1].replace(/,/g, ""));
     if (!Number.isFinite(originalAmount)) return price;
     const discountedAmount = Math.max(0, originalAmount - rewardAmount);
     return price.replace(match[0], "₦" + discountedAmount.toLocaleString("en-NG"));
+  }
+
+  function getOriginalPrice(price: string) {
+    if (userRole !== "tenant" || !rewardAmount) return null;
+    const match = price.match(/(?:₦|NGN\\s*)?\\s*([\\d,]+(?:\\.\\d+)?)/i);
+    if (!match) return null;
+    const originalAmount = Number(match[1].replace(/,/g, ""));
+    if (!Number.isFinite(originalAmount)) return null;
+    return "₦" + originalAmount.toLocaleString("en-NG");
   }
 
   function goHome() {
@@ -1098,6 +1107,11 @@ export default function AccountPage() {
 
                       <p className="mt-3 text-lg font-bold text-[#102f46]">
                         {getDisplayedPrice(property.price)}
+                        {getOriginalPrice(property.price) && (
+                          <span className="ml-2 text-sm font-semibold text-[#9aa4aa] line-through decoration-2">
+                            {getOriginalPrice(property.price)}
+                          </span>
+                        )}
                       </p>
 
                       <div className="mt-3 flex flex-wrap gap-3 text-xs text-[#607080]">

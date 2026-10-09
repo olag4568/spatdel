@@ -33,3 +33,15 @@ The website now has:
 ### Searchable chat member directory
 
 Run `supabase/migrations/20261012000000_chat_profile_directory.sql` in the Supabase SQL Editor after the role-aware chat migration. It creates the authenticated `spatdel_search_profiles` RPC so signed-in users can search other SPATDEL profile names and filter the directory by Tenant, Agent, Landlord, or Admin without requiring broad direct access to the profiles table.
+
+
+### Member profile pages
+
+Run `supabase/migrations/20261013000000_public_member_profiles.sql` in Supabase SQL Editor after the chat profile directory migration. It adds the authenticated `spatdel_get_public_profile` RPC, which exposes only a member's ID, display name, and role for profile pages.
+
+- Member profiles are available at `/profile/[id]`.
+- The Messages directory has a separate **View profile** action and **Message** button.
+- Clicking a person's name or avatar in an open conversation opens their profile.
+- Agent and landlord profiles show approved listings associated with that member.
+- The profile currently uses the existing `full_name` field; SPATDEL does not yet store a separate username, bio, or profile photo field.
+

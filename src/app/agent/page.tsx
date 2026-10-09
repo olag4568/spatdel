@@ -145,11 +145,6 @@ export default function AgentDashboard() {
       return;
     }
 
-    if (photos.length === 0) {
-      setError("Add at least one property photo before submitting.");
-      return;
-    }
-
     const numericPrice = Number(price);
     const numericBeds = Number(beds);
     const numericBaths = Number(baths);
@@ -204,7 +199,7 @@ export default function AgentDashboard() {
           beds: numericBeds,
           baths: numericBaths,
           sqm: `${numericSqm.toLocaleString("en-NG")} m²`,
-          image: imageUrls[0],
+          image: imageUrls[0] ?? "",
           images: imageUrls,
           flood: floodRisk,
           flood_risk: floodRisk,
@@ -352,10 +347,10 @@ export default function AgentDashboard() {
             </div>
 
             <div>
-              <label htmlFor="property-photos" className="text-sm font-semibold">Property photos * (up to {MAX_PHOTOS})</label>
+              <label htmlFor="property-photos" className="text-sm font-semibold">Property photos (up to {MAX_PHOTOS})</label>
               <label htmlFor="property-photos" className="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#cbd7dd] bg-[#fafbfb] px-5 py-7 text-center transition hover:border-[#087b62] hover:bg-[#f5faf8]">
                 <ImagePlus size={28} className="text-[#087b62]" />
-                <span className="mt-3 text-sm font-bold">Choose property photos</span>
+                <span className="mt-3 text-sm font-bold">Choose property photos (optional)</span>
                 <span className="mt-1 text-xs text-[#687987]">JPG, PNG or WebP · 10 MB maximum each</span>
                 <input id="property-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handlePhotoChange} className="sr-only" />
               </label>
@@ -364,7 +359,7 @@ export default function AgentDashboard() {
 
             <div className="rounded-2xl bg-[#f5f7f8] p-4 text-sm leading-6 text-[#687987]">
               <p className="font-bold text-[#102f46]">Admin review is required</p>
-              <p className="mt-1">Your property will be saved as pending and will not appear in public search until an admin approves it.</p>
+              <p className="mt-1">Your property will be saved as pending and will not appear in public search until an admin approves it. Add genuine photos when available; an admin may ask for photos before approval.</p>
             </div>
 
             <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#102f46] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#183d57] disabled:cursor-not-allowed disabled:opacity-60">

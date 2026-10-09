@@ -191,14 +191,14 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   update public.spatdel_chat_conversations
   set updated_at = now()
   where id = new.conversation_id;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists spatdel_touch_conversation_updated_at on public.spatdel_chat_messages;
 create trigger spatdel_touch_conversation_updated_at

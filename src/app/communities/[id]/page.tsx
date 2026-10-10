@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CalendarDays, LoaderCircle, MapPin, MessageCircle, Send, ShieldCheck, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";

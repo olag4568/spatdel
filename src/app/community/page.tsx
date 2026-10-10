@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Clock3, LoaderCircle, MessageCircle, MessagesSquare, Send, ShieldAlert, Users } from "lucide-react";
+import { ArrowLeft, Clock3, ImagePlus, LoaderCircle, MessageCircle, MessagesSquare, Send, ShieldAlert, Users, X } from "lucide-react";
 
 type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null };
-type Post = { id: string; author_id: string; body: string; created_at: string };
+type Post = { id: string; author_id: string; body: string; image_url?: string | null; created_at: string };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; author_id: string; body: string; created_at: string };
 
@@ -21,6 +21,9 @@ export default function CommunityPage() {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [expandedPost, setExpandedPost] = useState("");
   const [postDraft, setPostDraft] = useState("");
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [chatDraft, setChatDraft] = useState("");
   const [tab, setTab] = useState<"posts" | "chat">("posts");
@@ -37,7 +40,7 @@ export default function CommunityPage() {
   }, []);
 
   const loadPosts = useCallback(async () => {
-    const { data, error: loadError } = await supabase.from("spatdel_community_posts").select("id, author_id, body, created_at").order("created_at", { ascending: false }).limit(50);
+    const { data, error: loadError } = await supabase.from("spatdel_community_posts").select("id, author_id, body, image_url, created_at").order("created_at", { ascending: false }).limit(50);
     if (loadError) { setError("Could not load community posts. Check that the Community Pulse SQL migration has been run."); return; }
     const rows = (data || []) as Post[];
     setPosts(rows);
@@ -58,6 +61,12 @@ export default function CommunityPage() {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
       if (!data.user) { router.replace("/login?next=/community"); return; }
+      const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
+      if (!active) return;
+      if (profileError || !profile || !["admin", "chairman"].includes(profile.role || "")) {
+        router.replace(profile?.role === "tenant" ? "/" : profile?.role === "agent" || profile?.role === "landlord" ? "/agent" : "/");
+        return;
+      }
       setUserId(data.user.id);
       await Promise.all([loadPosts(), loadMessages()]);
       if (active) setLoading(false);
@@ -79,12 +88,22 @@ export default function CommunityPage() {
   async function submitPost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setNotice("");
     const body = postDraft.trim();
-    if (!body || !userId || sending) return;
+    if ((!body && !postImage) || !userId || sending) return;
     setSending(true);
-    const { error: insertError } = await supabase.from("spatdel_community_posts").insert({ author_id: userId, body });
+    let imageUrl: string | null = null;
+    if (postImage) {
+      const safeName = postImage.name.toLowerCase().replace(/[^a-z0-9.-]/g, "-");
+      const path = `${userId}/${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from("community-post-images").upload(path, postImage, { upsert: false, contentType: postImage.type });
+      if (uploadError) { setSending(false); setError("Picture upload failed. Make sure the Community Post SQL migration has been run."); return; }
+      imageUrl = supabase.storage.from("community-post-images").getPublicUrl(path).data.publicUrl;
+    }
+    const { error: insertError } = await supabase.from("spatdel_community_posts").insert({ author_id: userId, body, image_url: imageUrl });
     setSending(false);
     if (insertError) { setError("Your post could not be published. Please try again."); return; }
-    setPostDraft(""); setNotice("Your post is live."); await loadPosts();
+    setPostDraft(""); setPostImage(null); setPostImagePreview("");
+    if (imageInputRef.current) imageInputRef.current.value = "";
+    setNotice("Your community post is live."); await loadPosts();
   }
 
   async function submitComment(event: FormEvent<HTMLFormElement>, postId: string) {
@@ -167,15 +186,19 @@ export default function CommunityPage() {
             <form onSubmit={submitPost} className="h-fit rounded-2xl border border-[#102f46]/10 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-black">Start a conversation</h2>
               <p className="mt-1 text-xs leading-5 text-[#71808a]">Ask a question, share a local update, or give housing advice.</p>
-              <textarea value={postDraft} onChange={(e) => setPostDraft(e.target.value.slice(0, 3000))} maxLength={3000} rows={5} placeholder="What's happening in your area?" className="mt-4 w-full resize-y rounded-xl border border-[#102f46]/15 bg-[#f8f7f2] p-3 text-sm outline-none focus:border-[#087b62]" />
-              <div className="mt-2 flex items-center justify-between text-[11px] text-[#71808a]"><span>Be helpful and respectful.</span><span>{postDraft.length}/3000</span></div>
-              <button disabled={!postDraft.trim() || sending} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={16} /> Publish post</button>
+              <textarea value={postDraft} onChange={(e) => setPostDraft(e.target.value.slice(0, 3000))} maxLength={3000} rows={4} placeholder="Add a caption or community update..." className="mt-4 w-full resize-y rounded-xl border border-[#102f46]/15 bg-[#f8f7f2] p-3 text-sm outline-none focus:border-[#087b62]" />
+              <div className="mt-2 flex items-center justify-between text-[11px] text-[#71808a]"><span>Only admins and chairmen can post here.</span><span>{postDraft.length}/3000</span></div>
+              <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (!file.type.startsWith("image/")) { setError("Choose an image file."); return; } if (file.size > 5 * 1024 * 1024) { setError("Choose an image under 5 MB."); e.target.value = ""; return; } setPostImage(file); setPostImagePreview(URL.createObjectURL(file)); setError(""); }} />
+              <button type="button" onClick={() => imageInputRef.current?.click()} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#102f46]/15 px-3 py-2 text-sm font-bold hover:border-[#087b62]"><ImagePlus size={17} /> {postImage ? "Change picture" : "Add picture"}</button>
+              {postImagePreview && <div className="mt-3 overflow-hidden rounded-xl border border-[#102f46]/10"><div className="flex items-center justify-between bg-[#f8f7f2] px-3 py-2 text-xs font-bold"><span>Picture preview</span><button type="button" onClick={() => { setPostImage(null); setPostImagePreview(""); if (imageInputRef.current) imageInputRef.current.value = ""; }} aria-label="Remove selected picture" className="rounded p-1 hover:bg-white"><X size={15} /></button></div><img src={postImagePreview} alt="Preview of community post" className="max-h-64 w-full object-contain bg-black/5" /><p className="px-3 py-2 text-xs text-[#71808a]">Your caption above will appear with this picture.</p></div>}
+              <button disabled={(!postDraft.trim() && !postImage) || sending} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={16} /> {sending ? "Publishing..." : "Publish post"}</button>
             </form>
             <section>
               <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">Community discussions</h2><span className="text-xs text-[#71808a]">{posts.length} recent posts</span></div>
               {posts.length === 0 ? <div className="rounded-xl border border-dashed border-[#102f46]/20 bg-white p-8 text-center"><MessagesSquare className="mx-auto text-[#087b62]" size={28} /><p className="mt-3 font-bold">Be the first to start a discussion.</p><p className="mt-1 text-sm text-[#71808a]">Your post will appear here for other members.</p></div> : <div className="space-y-4">{posts.map((post) => <article key={post.id} className="rounded-2xl border border-[#102f46]/10 bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3"><button onClick={() => memberLink(post.author_id)} className="flex items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e4f5ee] text-sm font-black text-[#087b62]">{profiles[post.author_id]?.avatar_url ? <img src={profiles[post.author_id].avatar_url!} alt="" className="h-full w-full object-cover" /> : displayName(post.author_id).slice(0,1).toUpperCase()}</span><span><b className="block text-sm">{displayName(post.author_id)}</b><span className="text-xs text-[#71808a]">{roleLabel(post.author_id)} · {timeLabel(post.created_at)}</span></span></button><button title="Report post" onClick={() => void reportContent("post", post.id)} className="rounded-lg p-2 text-[#71808a] hover:bg-red-50 hover:text-red-600"><ShieldAlert size={17} /></button></div>
-                <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{post.body}</p>
+                {post.body && <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{post.body}</p>}
+                {post.image_url && <div className="mt-4 overflow-hidden rounded-xl border border-[#102f46]/10 bg-[#f8f7f2]"><img src={post.image_url} alt={post.body || "Community post picture"} className="max-h-[520px] w-full object-contain" /></div>}
                 <div className="mt-4 border-t border-[#102f46]/10 pt-3"><button onClick={() => void loadComments(post.id)} className="inline-flex items-center gap-2 text-sm font-bold text-[#087b62]"><MessageCircle size={16} /> {expandedPost === post.id ? "Hide replies" : "View / reply to comments"} <span className="text-xs font-normal text-[#71808a]">{comments[post.id]?.length ? `(${comments[post.id].length})` : ""}</span></button></div>
                 {expandedPost === post.id && <div className="mt-4 space-y-3">{(comments[post.id] || []).map((comment) => <div key={comment.id} className="rounded-lg bg-[#f8f7f2] p-3"><div className="flex items-start justify-between gap-2"><button onClick={() => memberLink(comment.author_id)} className="text-xs font-black hover:text-[#087b62]">{displayName(comment.author_id)}</button><button title="Report comment" onClick={() => void reportContent("comment", comment.id)} className="text-[#71808a] hover:text-red-600"><ShieldAlert size={14} /></button></div><p className="mt-1 whitespace-pre-wrap break-words text-sm">{comment.body}</p><p className="mt-2 text-[10px] text-[#71808a]">{timeLabel(comment.created_at)}</p></div>)}
                   <form onSubmit={(e) => void submitComment(e, post.id)} className="flex gap-2"><input value={commentDrafts[post.id] || ""} onChange={(e) => setCommentDrafts((current) => ({ ...current, [post.id]: e.target.value.slice(0, 1500) }))} maxLength={1500} placeholder="Write a helpful reply..." className="min-w-0 flex-1 rounded-lg border border-[#102f46]/15 px-3 py-2 text-sm outline-none focus:border-[#087b62]" /><button disabled={!(commentDrafts[post.id] || "").trim() || sending} className="rounded-lg bg-[#087b62] px-3 text-white disabled:opacity-50"><Send size={16} /></button></form>

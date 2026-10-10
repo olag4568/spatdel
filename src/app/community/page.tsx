@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Clock3, ImagePlus, LoaderCircle, MessageCircle, MessagesSquare, Send, ShieldAlert, Users, X } from "lucide-react";
 
-type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null };
+type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null; community_label?: string | null };
 type Post = { id: string; author_id: string; body: string; image_url?: string | null; created_at: string };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
 type ChatMessage = { id: string; author_id: string; body: string; created_at: string };
@@ -16,6 +16,7 @@ export default function CommunityPage() {
   const supabase = createClient();
   const [userId, setUserId] = useState("");
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [currentRole, setCurrentRole] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
@@ -36,7 +37,17 @@ export default function CommunityPage() {
     const unique = Array.from(new Set(ids.filter(Boolean)));
     if (!unique.length) return;
     const { data } = await supabase.from("profiles").select("id, full_name, username, role, avatar_url").in("id", unique);
-    if (data) setProfiles((current) => ({ ...current, ...Object.fromEntries(data.map((p) => [p.id, p as Profile])) }));
+    if (!data) return;
+    const chairIds = data.filter((p) => p.role === "chairman").map((p) => p.id);
+    const labels: Record<string, string> = {};
+    if (chairIds.length) {
+      const { data: assignments } = await supabase.from("community_chairmen").select("chairman_id, communities(name, country, state, local_government)").in("chairman_id", chairIds);
+      for (const assignment of (assignments || []) as any[]) {
+        const community = Array.isArray(assignment.communities) ? assignment.communities[0] : assignment.communities;
+        if (community) labels[assignment.chairman_id] = [community.name, community.local_government, community.state, community.country].filter(Boolean).join(" · ");
+      }
+    }
+    setProfiles((current) => ({ ...current, ...Object.fromEntries(data.map((p) => [p.id, { ...(p as Profile), community_label: labels[p.id] || current[p.id]?.community_label || null }])) }));
   }, []);
 
   const loadPosts = useCallback(async () => {
@@ -68,6 +79,7 @@ export default function CommunityPage() {
         return;
       }
       setUserId(data.user.id);
+      setCurrentRole(profile.role || "");
       await Promise.all([loadPosts(), loadMessages()]);
       if (active) setLoading(false);
     }
@@ -89,6 +101,11 @@ export default function CommunityPage() {
     event.preventDefault(); setError(""); setNotice("");
     const body = postDraft.trim();
     if ((!body && !postImage) || !userId || sending) return;
+    const propertyAdPattern = /\b(for sale|house for sale|home for sale|property for sale|land for sale|selling (?:a |my |the )?(?:house|home|property|land)|buy (?:this )?(?:house|home|property|land)|real estate listing|rent(?:al)? (?:available|available now|house|apartment|flat)|to let|available for rent|bedroom apartment for rent)\b/i;
+    if (currentRole === "chairman" && propertyAdPattern.test(body)) {
+      setError("Chairmen cannot advertise houses, land, or rentals in Community Pulse. Agents and landlords should use SPATDEL property listings for advertisements.");
+      return;
+    }
     setSending(true);
     let imageUrl: string | null = null;
     if (postImage) {
@@ -100,7 +117,7 @@ export default function CommunityPage() {
     }
     const { error: insertError } = await supabase.from("spatdel_community_posts").insert({ author_id: userId, body, image_url: imageUrl });
     setSending(false);
-    if (insertError) { setError("Your post could not be published. Please try again."); return; }
+    if (insertError) { setError(`Your post could not be published: ${insertError.message}`); return; }
     setPostDraft(""); setPostImage(null); setPostImagePreview("");
     if (imageInputRef.current) imageInputRef.current.value = "";
     setNotice("Your community post is live."); await loadPosts();
@@ -150,6 +167,10 @@ export default function CommunityPage() {
     return role ? role.charAt(0).toUpperCase() + role.slice(1) : "Member";
   }
 
+  function communityLabel(id: string) {
+    return profiles[id]?.community_label || "";
+  }
+
   function memberLink(id: string) {
     router.push("/profile/" + id);
   }
@@ -196,7 +217,7 @@ export default function CommunityPage() {
             <section>
               <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">Community discussions</h2><span className="text-xs text-[#71808a]">{posts.length} recent posts</span></div>
               {posts.length === 0 ? <div className="rounded-xl border border-dashed border-[#102f46]/20 bg-white p-8 text-center"><MessagesSquare className="mx-auto text-[#087b62]" size={28} /><p className="mt-3 font-bold">Be the first to start a discussion.</p><p className="mt-1 text-sm text-[#71808a]">Your post will appear here for other members.</p></div> : <div className="space-y-4">{posts.map((post) => <article key={post.id} className="rounded-2xl border border-[#102f46]/10 bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3"><button onClick={() => memberLink(post.author_id)} className="flex items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e4f5ee] text-sm font-black text-[#087b62]">{profiles[post.author_id]?.avatar_url ? <img src={profiles[post.author_id].avatar_url!} alt="" className="h-full w-full object-cover" /> : displayName(post.author_id).slice(0,1).toUpperCase()}</span><span><b className="block text-sm">{displayName(post.author_id)}</b><span className="text-xs text-[#71808a]">{roleLabel(post.author_id)} · {timeLabel(post.created_at)}</span></span></button><button title="Report post" onClick={() => void reportContent("post", post.id)} className="rounded-lg p-2 text-[#71808a] hover:bg-red-50 hover:text-red-600"><ShieldAlert size={17} /></button></div>
+                <div className="flex items-start justify-between gap-3"><button onClick={() => memberLink(post.author_id)} className="flex items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e4f5ee] text-sm font-black text-[#087b62]">{profiles[post.author_id]?.avatar_url ? <img src={profiles[post.author_id].avatar_url!} alt="" className="h-full w-full object-cover" /> : displayName(post.author_id).slice(0,1).toUpperCase()}</span><span><b className="block text-sm">{displayName(post.author_id)}</b><span className="text-xs text-[#71808a]">{roleLabel(post.author_id)} · {timeLabel(post.created_at)}</span>{communityLabel(post.author_id) && <span className="mt-1 block text-[11px] font-semibold text-[#087b62]">Community: {communityLabel(post.author_id)}</span>}</span></button><button title="Report post" onClick={() => void reportContent("post", post.id)} className="rounded-lg p-2 text-[#71808a] hover:bg-red-50 hover:text-red-600"><ShieldAlert size={17} /></button></div>
                 {post.body && <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{post.body}</p>}
                 {post.image_url && <div className="mt-4 overflow-hidden rounded-xl border border-[#102f46]/10 bg-[#f8f7f2]"><img src={post.image_url} alt={post.body || "Community post picture"} className="max-h-[520px] w-full object-contain" /></div>}
                 <div className="mt-4 border-t border-[#102f46]/10 pt-3"><button onClick={() => void loadComments(post.id)} className="inline-flex items-center gap-2 text-sm font-bold text-[#087b62]"><MessageCircle size={16} /> {expandedPost === post.id ? "Hide replies" : "View / reply to comments"} <span className="text-xs font-normal text-[#71808a]">{comments[post.id]?.length ? `(${comments[post.id].length})` : ""}</span></button></div>
@@ -208,10 +229,11 @@ export default function CommunityPage() {
           </div>
         ) : (
           <section className="mt-6 overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-[#102f46]/10 bg-[#e4f5ee] px-5 py-4"><div><h2 className="font-black">SPATDEL Live Room</h2><p className="mt-1 text-xs text-[#71808a]">Messages refresh automatically every 5 seconds.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#087b62]"><span className="h-2 w-2 rounded-full bg-[#087b62]" /> Members only</span></div>
+            <div className="flex items-center justify-between border-b border-[#102f46]/10 bg-[#e4f5ee] px-5 py-4"><div><h2 className="font-black">SPATDEL Live Room</h2><p className="mt-1 text-xs text-[#71808a]">All signed-in SPATDEL users can join. Messages refresh automatically every 5 seconds.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#087b62]"><span className="h-2 w-2 rounded-full bg-[#087b62]" /> All members</span></div>
             <div className="flex h-[55vh] min-h-[340px] flex-col gap-3 overflow-y-auto bg-[#f8f7f2] p-4 sm:p-6">
               {messages.length === 0 ? <p className="m-auto text-center text-sm text-[#71808a]">No messages yet. Start the conversation 👋</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl p-3 shadow-sm sm:max-w-[70%] ${message.author_id === userId ? "ml-auto bg-[#087b62] text-white" : "mr-auto bg-white text-[#102f46]"}`}>
                 <button onClick={() => memberLink(message.author_id)} className={`mb-1 block text-xs font-black underline-offset-2 hover:underline ${message.author_id === userId ? "text-[#c9ffe8]" : "text-[#087b62]"}`}>{message.author_id === userId ? "You" : displayName(message.author_id)} <span className="font-normal opacity-70">· {roleLabel(message.author_id)}</span></button>
+                {communityLabel(message.author_id) && <p className="mb-1 text-[10px] font-semibold opacity-75">Community: {communityLabel(message.author_id)}</p>}
                 <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
                 <div className="mt-2 flex items-center justify-between gap-4 text-[10px] opacity-65"><span className="inline-flex items-center gap-1"><Clock3 size={11} />{timeLabel(message.created_at)}</span><button onClick={() => void reportContent("message", message.id)} title="Report message"><ShieldAlert size={13} /></button></div>
               </div>)}

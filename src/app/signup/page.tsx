@@ -11,10 +11,11 @@ import {
   User,
   Building2,
   Home,
+  ShieldCheck as ChairmanIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type UserRole = "tenant" | "agent" | "landlord";
+type UserRole = "tenant" | "agent" | "landlord" | "chairman";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -24,6 +25,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [communityName, setCommunityName] = useState("");
+  const [communityState, setCommunityState] = useState("");
+  const [localGovernment, setLocalGovernment] = useState("");
+  const [applicationReason, setApplicationReason] = useState("");
 
   const [role, setRole] = useState<UserRole>("tenant");
 
@@ -69,6 +74,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (role === "chairman" && (!communityName.trim() || !communityState.trim() || !localGovernment.trim())) {
+      setError("Please enter your community name, state, and local government area.");
+      return;
+    }
+
     setLoading(true);
 
     const { data, error: signupError } =
@@ -78,7 +88,15 @@ export default function SignupPage() {
         options: {
           data: {
             full_name: cleanName,
-            role,
+            // Chairman applicants remain ordinary tenants until an admin approves them.
+            role: role === "chairman" ? "tenant" : role,
+            requested_role: role === "chairman" ? "chairman" : role,
+            ...(role === "chairman" ? {
+              chairman_community_name: communityName.trim(),
+              chairman_state: communityState.trim(),
+              chairman_local_government: localGovernment.trim(),
+              chairman_application_reason: applicationReason.trim(),
+            } : {}),
           },
         },
       });
@@ -115,13 +133,9 @@ export default function SignupPage() {
     }
 
     setMessage(
-      `Account created successfully as a ${
-        role === "tenant"
-          ? "Tenant"
-          : role === "agent"
-          ? "Agent"
-          : "Landlord"
-      }. Please check your email to confirm your account before signing in.`
+      role === "chairman"
+        ? "Your Chairman application has been submitted for review. Your account will not receive chairman access unless an admin approves it. Please check your email to confirm your account before signing in."
+        : `Account created successfully as a ${role === "tenant" ? "Tenant" : role === "agent" ? "Agent" : "Landlord"}. Please check your email to confirm your account before signing in.`
     );
 
     setPassword("");
@@ -257,7 +271,7 @@ export default function SignupPage() {
                     I am a
                   </label>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {/* TENANT */}
                     <button
                       type="button"
@@ -298,6 +312,16 @@ export default function SignupPage() {
                       </span>
                     </button>
 
+                    {/* CHAIRMAN — application only; approval is required for dashboard access */}
+                    <button
+                      type="button"
+                      onClick={() => setRole("chairman")}
+                      className={`rounded-lg border p-3 text-center transition ${role === "chairman" ? "border-[#087b62] bg-[#e4f5ee] text-[#087b62]" : "border-[#102f46]/15 bg-[#f8f7f2] text-[#102f46] hover:border-[#087b62]/40"}`}
+                    >
+                      <ChairmanIcon size={20} className="mx-auto" />
+                      <span className="mt-2 block text-xs font-bold">Chairman</span>
+                    </button>
+
                     {/* LANDLORD */}
                     <button
                       type="button"
@@ -323,6 +347,31 @@ export default function SignupPage() {
                     Choose the account type that best describes you.
                   </p>
                 </div>
+
+                {role === "chairman" && (
+                  <div className="space-y-4 rounded-xl border border-[#087b62]/20 bg-[#e4f5ee]/50 p-4">
+                    <div>
+                      <h3 className="text-sm font-bold">Chairman application</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#71808a]">Tell us which community you represent. An admin must review your application before chairman access is granted.</p>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Community name</label>
+                      <input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Your community or estate name" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">State</label>
+                      <input value={communityState} onChange={(e) => setCommunityState(e.target.value)} placeholder="e.g. Lagos" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Local government area</label>
+                      <input value={localGovernment} onChange={(e) => setLocalGovernment(e.target.value)} placeholder="e.g. Ikeja" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Why should you be the chairman? (optional)</label>
+                      <textarea value={applicationReason} onChange={(e) => setApplicationReason(e.target.value)} rows={3} placeholder="Briefly explain your role in the community" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                    </div>
+                  </div>
+                )}
 
                 {/* PASSWORD */}
                 <div>

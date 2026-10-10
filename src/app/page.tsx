@@ -2232,12 +2232,20 @@ export default function Home() {
                 Publish posts, reply to housing questions, or chat live with tenants, agents and landlords.
               </p>
             </div>
-            <button
-              onClick={() => router.push("/community")}
-              className="mt-5 inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#19e58f] px-5 py-3 text-sm font-black text-[#071b18] transition hover:-translate-y-0.5 sm:mt-0"
-            >
-              Open Community Pulse <ArrowRight size={16} />
-            </button>
+            <div className="mt-5 flex shrink-0 flex-wrap gap-3 sm:mt-0">
+              <button
+                onClick={() => router.push("/community")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#19e58f] px-5 py-3 text-sm font-black text-[#071b18] transition hover:-translate-y-0.5"
+              >
+                Open Community Pulse <ArrowRight size={16} />
+              </button>
+              <button
+                onClick={() => router.push("/communities")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                Find your community <Users size={16} />
+              </button>
+            </div>
           </div>
         </div>
       </section>

@@ -74,12 +74,13 @@ export default function CommunityPage() {
       if (!data.user) { router.replace("/login?next=/community"); return; }
       const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
       if (!active) return;
-      if (profileError || !profile || !["admin", "chairman"].includes(profile.role || "")) {
-        router.replace(profile?.role === "tenant" ? "/" : profile?.role === "agent" || profile?.role === "landlord" ? "/agent" : "/");
+      if (profileError || !profile) {
+        router.replace("/");
         return;
       }
       setUserId(data.user.id);
       setCurrentRole(profile.role || "");
+      if (!["admin", "chairman"].includes(profile.role || "")) setTab("chat");
       await Promise.all([loadPosts(), loadMessages()]);
       if (active) setLoading(false);
     }
@@ -194,7 +195,7 @@ export default function CommunityPage() {
           <h1 className="mt-4 text-3xl font-black sm:text-4xl">Your neighbourhood. Your voice.</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Share local updates, ask housing questions, and connect with tenants, agents, and landlords. Keep personal contact details private and treat members respectfully.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button onClick={() => setTab("posts")} className={`rounded-lg px-4 py-3 text-sm font-bold ${tab === "posts" ? "bg-[#19e58f] text-[#071b18]" : "bg-white/10 text-white"}`}><MessagesSquare className="mr-2 inline" size={17} /> Community posts</button>
+            {["admin", "chairman"].includes(currentRole) && <button onClick={() => setTab("posts")} className={`rounded-lg px-4 py-3 text-sm font-bold ${tab === "posts" ? "bg-[#19e58f] text-[#071b18]" : "bg-white/10 text-white"}`}><MessagesSquare className="mr-2 inline" size={17} /> Community posts</button>}
             <button onClick={() => setTab("chat")} className={`rounded-lg px-4 py-3 text-sm font-bold ${tab === "chat" ? "bg-[#19e58f] text-[#071b18]" : "bg-white/10 text-white"}`}><MessageCircle className="mr-2 inline" size={17} /> Live community chat</button>
           </div>
         </div>
@@ -208,11 +209,11 @@ export default function CommunityPage() {
               <h2 className="text-lg font-black">Start a conversation</h2>
               <p className="mt-1 text-xs leading-5 text-[#71808a]">Ask a question, share a local update, or give housing advice.</p>
               <textarea value={postDraft} onChange={(e) => setPostDraft(e.target.value.slice(0, 3000))} maxLength={3000} rows={4} placeholder="Add a caption or community update..." className="mt-4 w-full resize-y rounded-xl border border-[#102f46]/15 bg-[#f8f7f2] p-3 text-sm outline-none focus:border-[#087b62]" />
-              <div className="mt-2 flex items-center justify-between text-[11px] text-[#71808a]"><span>Only admins and chairmen can post here.</span><span>{postDraft.length}/3000</span></div>
+              <div className="mt-2 flex items-center justify-between text-[11px] text-[#71808a]"><span>{currentRole === "chairman" ? "Community updates only. Property adverts are blocked." : "Only admins and chairmen can publish community updates."}</span><span>{postDraft.length}/3000 · caption required</span></div>
               <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (!file.type.startsWith("image/")) { setError("Choose an image file."); return; } if (file.size > 5 * 1024 * 1024) { setError("Choose an image under 5 MB."); e.target.value = ""; return; } setPostImage(file); setPostImagePreview(URL.createObjectURL(file)); setError(""); }} />
               <button type="button" onClick={() => imageInputRef.current?.click()} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-[#102f46]/15 px-3 py-2 text-sm font-bold hover:border-[#087b62]"><ImagePlus size={17} /> {postImage ? "Change picture" : "Add picture"}</button>
               {postImagePreview && <div className="mt-3 overflow-hidden rounded-xl border border-[#102f46]/10"><div className="flex items-center justify-between bg-[#f8f7f2] px-3 py-2 text-xs font-bold"><span>Picture preview</span><button type="button" onClick={() => { setPostImage(null); setPostImagePreview(""); if (imageInputRef.current) imageInputRef.current.value = ""; }} aria-label="Remove selected picture" className="rounded p-1 hover:bg-white"><X size={15} /></button></div><img src={postImagePreview} alt="Preview of community post" className="max-h-64 w-full object-contain bg-black/5" /><p className="px-3 py-2 text-xs text-[#71808a]">Your caption above will appear with this picture.</p></div>}
-              <button disabled={(!postDraft.trim() && !postImage) || sending} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={16} /> {sending ? "Publishing..." : "Publish post"}</button>
+              <button disabled={!postDraft.trim() || sending} className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50"><Send size={16} /> {sending ? "Publishing..." : "Publish post"}</button>
             </form>
             <section>
               <div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-black">Community discussions</h2><span className="text-xs text-[#71808a]">{posts.length} recent posts</span></div>

@@ -999,7 +999,7 @@ export default function AdminDashboard() {
                         </select>
                       </label>
                       {communities.filter((community) => communityMatchesApplication(community, application)).length === 0 && (
-                        <p className="text-xs leading-5 text-amber-700">No active community matches this applicant's location yet. Create the community above using the same country, region/state, and district/county/LGA, then refresh applications.</p>
+                        <div className="rounded-lg bg-amber-50 p-3"><p className="text-xs leading-5 text-amber-800">No active community matches this chairman's submitted location. Copy their location into the community form below.</p><button type="button" onClick={() => useChairmanApplicationLocation(application)} className="mt-2 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100">Use this chairman's location</button></div>
                       )}
                       <div className="flex flex-wrap gap-2">
                         <button type="button" onClick={() => void reviewChairmanApplication(application, "approved")} disabled={reviewingApplicationId === application.id || communities.filter((community) => communityMatchesApplication(community, application)).length === 0} className="rounded-lg bg-[#087b62] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#06644f] disabled:opacity-50">

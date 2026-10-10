@@ -1072,6 +1072,7 @@ export default function AdminDashboard() {
                   <option value="landlord">
                     Landlords
                   </option>
+                  <option value="chairman">Chairmen</option>
                   <option value="admin">Admins</option>
                 </select>
               </div>
@@ -1192,6 +1193,10 @@ export default function AdminDashboard() {
 
                             <option value="landlord">
                               Landlord
+                            </option>
+
+                            <option value="chairman">
+                              Chairman
                             </option>
 
                             <option value="admin">

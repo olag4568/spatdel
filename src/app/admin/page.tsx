@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type UserRole = "tenant" | "agent" | "landlord" | "admin";
+type UserRole = "tenant" | "agent" | "landlord" | "chairman" | "admin";
 
 type Profile = {
   id: string;
@@ -32,6 +32,27 @@ type Profile = {
   email: string | null;
   role: UserRole;
   created_at?: string | null;
+};
+
+type ChairmanApplication = {
+  id: string;
+  user_id: string;
+  community_name: string;
+  state: string;
+  local_government: string;
+  reason: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  applicant_name?: string;
+  applicant_email?: string;
+};
+
+type CommunityOption = {
+  id: string;
+  name: string;
+  state: string | null;
+  local_government: string | null;
+  status: "active" | "inactive" | "pending";
 };
 
 type CommunityReport = {
@@ -78,6 +99,15 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [communityReports, setCommunityReports] = useState<CommunityReport[]>([]);
+  const [chairmanApplications, setChairmanApplications] = useState<ChairmanApplication[]>([]);
+  const [communities, setCommunities] = useState<CommunityOption[]>([]);
+  const [selectedCommunityByApplication, setSelectedCommunityByApplication] = useState<Record<string, string>>({});
+  const [loadingChairmanApplications, setLoadingChairmanApplications] = useState(false);
+  const [reviewingApplicationId, setReviewingApplicationId] = useState<string | null>(null);
+  const [newCommunityName, setNewCommunityName] = useState("");
+  const [newCommunityState, setNewCommunityState] = useState("");
+  const [newCommunityLga, setNewCommunityLga] = useState("");
+  const [creatingCommunity, setCreatingCommunity] = useState(false);
   const [loadingReports, setLoadingReports] = useState(false);
   const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
 
@@ -226,6 +256,51 @@ export default function AdminDashboard() {
       })));
     }
     setLoadingReports(false);
+
+    setLoadingChairmanApplications(true);
+    const [applicationsResult, communitiesResult] = await Promise.all([
+      supabase
+        .from("chairman_applications")
+        .select("id, user_id, community_name, state, local_government, reason, status, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("communities")
+        .select("id, name, state, local_government, status")
+        .order("name", { ascending: true }),
+    ]);
+
+    if (applicationsResult.error) {
+      setError((current) =>
+        current
+          ? `${current} Chairman applications: ${applicationsResult.error.message}`
+          : `Could not load chairman applications: ${applicationsResult.error.message}`
+      );
+    } else {
+      const applicationRows = (applicationsResult.data || []) as ChairmanApplication[];
+      const applicantIds = Array.from(new Set(applicationRows.map((application) => application.user_id)));
+      const { data: applicantProfiles } = applicantIds.length
+        ? await supabase.from("profiles").select("id, full_name, email").in("id", applicantIds)
+        : { data: [] };
+      const applicantById = new Map(
+        (applicantProfiles || []).map((item) => [item.id, item])
+      );
+      setChairmanApplications(applicationRows.map((application) => ({
+        ...application,
+        applicant_name: applicantById.get(application.user_id)?.full_name || "SPATDEL member",
+        applicant_email: applicantById.get(application.user_id)?.email || "",
+      })));
+    }
+
+    if (communitiesResult.error) {
+      setError((current) =>
+        current
+          ? `${current} Communities: ${communitiesResult.error.message}`
+          : `Could not load communities: ${communitiesResult.error.message}`
+      );
+    } else {
+      setCommunities((communitiesResult.data || []) as CommunityOption[]);
+    }
+    setLoadingChairmanApplications(false);
     setLoading(false);
   }, [router, supabase]);
 
@@ -371,6 +446,113 @@ export default function AdminDashboard() {
     setTimeout(() => {
       setSuccess("");
     }, 3000);
+  }
+
+  async function createCommunity() {
+    const name = newCommunityName.trim();
+    const state = newCommunityState.trim();
+    const localGovernment = newCommunityLga.trim();
+    if (!name || !state || !localGovernment) {
+      setError("Enter the community name, state, and local government area.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setCreatingCommunity(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error: createError } = await supabase
+      .from("communities")
+      .insert({
+        name,
+        state,
+        local_government: localGovernment,
+        status: "active",
+        created_by: user?.id ?? null,
+      })
+      .select("id, name, state, local_government, status")
+      .single();
+
+    if (createError || !data) {
+      setError(`Could not create community: ${createError?.message || "No community returned"}`);
+      setCreatingCommunity(false);
+      return;
+    }
+
+    setCommunities((current) => [...current, data as CommunityOption].sort((a, b) => a.name.localeCompare(b.name)));
+    setNewCommunityName("");
+    setNewCommunityState("");
+    setNewCommunityLga("");
+    setSuccess("Community created successfully.");
+    setCreatingCommunity(false);
+  }
+
+  async function reviewChairmanApplication(application: ChairmanApplication, decision: "approved" | "rejected") {
+    const communityId = selectedCommunityByApplication[application.id];
+    if (decision === "approved" && !communityId) {
+      setError("Choose a community before approving and assigning this chairman.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setReviewingApplicationId(application.id);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error: applicationError } = await supabase
+      .from("chairman_applications")
+      .update({
+        status: decision,
+        reviewed_by: user?.id ?? null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", application.id);
+
+    if (applicationError) {
+      setError(`Could not update application: ${applicationError.message}`);
+      setReviewingApplicationId(null);
+      return;
+    }
+
+    if (decision === "approved") {
+      const { error: roleError } = await supabase
+        .from("profiles")
+        .update({ role: "chairman" })
+        .eq("id", application.user_id);
+      if (roleError) {
+        setError(`Application was approved, but the chairman role could not be granted: ${roleError.message}`);
+        setReviewingApplicationId(null);
+        await loadAdminData();
+        return;
+      }
+
+      const { error: assignmentError } = await supabase
+        .from("community_chairmen")
+        .upsert({
+          community_id: communityId,
+          chairman_id: application.user_id,
+          assigned_by: user?.id ?? null,
+        }, { onConflict: "community_id,chairman_id" });
+
+      if (assignmentError) {
+        setError(`Chairman role granted, but community assignment failed: ${assignmentError.message}`);
+        setReviewingApplicationId(null);
+        await loadAdminData();
+        return;
+      }
+
+      setSuccess("Chairman application approved and community assigned.");
+    } else {
+      setSuccess("Chairman application rejected.");
+    }
+
+    setChairmanApplications((current) =>
+      current.map((item) => item.id === application.id ? { ...item, status: decision } : item)
+    );
+    if (decision === "approved") {
+      setUsers((current) => current.map((item) => item.id === application.user_id ? { ...item, role: "chairman" } : item));
+    }
+    setReviewingApplicationId(null);
   }
 
   async function resolveCommunityReport(reportId: string) {
@@ -687,6 +869,94 @@ export default function AdminDashboard() {
             icon={<ShieldCheck size={19} />}
           />
         </div>
+
+        {/* CHAIRMAN APPLICATIONS AND COMMUNITY SETUP */}
+        <section id="chairman-applications" className="mt-8 overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-sm">
+          <div className="border-b border-[#102f46]/10 p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e4f5ee] text-[#087b62]"><ShieldCheck size={20} /></div>
+              <div>
+                <h2 className="text-xl font-black">Chairman Applications</h2>
+                <p className="text-xs text-[#71808a]">Review requests, create communities, and assign approved chairmen.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-5 p-5 lg:grid-cols-[0.9fr_1.1fr] sm:p-6">
+            <form
+              onSubmit={(event) => { event.preventDefault(); void createCommunity(); }}
+              className="h-fit rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4"
+            >
+              <h3 className="font-black">Create a community</h3>
+              <p className="mt-1 text-xs leading-5 text-[#71808a]">Create the community first so an approved chairman can be assigned to it.</p>
+              <div className="mt-4 space-y-3">
+                <input value={newCommunityName} onChange={(event) => setNewCommunityName(event.target.value)} placeholder="Community name" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input value={newCommunityState} onChange={(event) => setNewCommunityState(event.target.value)} placeholder="State" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input value={newCommunityLga} onChange={(event) => setNewCommunityLga(event.target.value)} placeholder="Local government area" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <button type="submit" disabled={creatingCommunity} className="w-full rounded-lg bg-[#102f46] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#174763] disabled:opacity-50">
+                  {creatingCommunity ? "Creating..." : "Create community"}
+                </button>
+              </div>
+              <div className="mt-4 border-t border-[#102f46]/10 pt-3">
+                <p className="text-xs font-bold text-[#102f46]">{communities.length} communities available</p>
+                {communities.slice(0, 5).map((community) => (
+                  <p key={community.id} className="mt-2 text-xs text-[#71808a]">{community.name} · {community.local_government || "LGA not set"}, {community.state || "State not set"}</p>
+                ))}
+              </div>
+            </form>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-black">Applications</h3>
+                <span className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">
+                  {chairmanApplications.filter((application) => application.status === "pending").length} pending
+                </span>
+              </div>
+              {loadingChairmanApplications ? (
+                <p className="py-8 text-center text-sm text-[#71808a]">Loading chairman applications...</p>
+              ) : chairmanApplications.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#102f46]/15 p-8 text-center">
+                  <Users className="mx-auto text-[#087b62]" size={26} />
+                  <p className="mt-3 font-bold">No chairman applications yet.</p>
+                  <p className="mt-1 text-sm text-[#71808a]">New applications submitted through signup will appear here.</p>
+                </div>
+              ) : chairmanApplications.map((application) => (
+                <article key={application.id} className="rounded-xl border border-[#102f46]/10 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${application.status === "pending" ? "bg-orange-50 text-orange-700" : application.status === "approved" ? "bg-[#e4f5ee] text-[#087b62]" : "bg-red-50 text-red-700"}`}>{application.status}</span>
+                    <span className="text-xs text-[#71808a]">{formatDate(application.created_at)}</span>
+                  </div>
+                  <p className="mt-3 font-bold">{application.applicant_name || "SPATDEL member"}</p>
+                  {application.applicant_email && <p className="text-xs text-[#71808a]">{application.applicant_email}</p>}
+                  <p className="mt-2 text-sm">Requested community: <strong>{application.community_name}</strong></p>
+                  <p className="text-sm text-[#71808a]">{application.local_government}, {application.state}</p>
+                  {application.reason && <p className="mt-2 rounded-lg bg-[#f8f7f2] p-3 text-sm leading-5">{application.reason}</p>}
+                  {application.status === "pending" && (
+                    <div className="mt-4 space-y-3">
+                      <label className="block text-xs font-bold text-[#71808a]">
+                        Assign community
+                        <select value={selectedCommunityByApplication[application.id] || ""} onChange={(event) => setSelectedCommunityByApplication((current) => ({ ...current, [application.id]: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm font-medium text-[#102f46] outline-none focus:border-[#087b62]">
+                          <option value="">Select a community</option>
+                          {communities.filter((community) => community.status === "active").map((community) => (
+                            <option key={community.id} value={community.id}>{community.name} · {community.local_government || ""}{community.state ? `, ${community.state}` : ""}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => void reviewChairmanApplication(application, "approved")} disabled={reviewingApplicationId === application.id || communities.filter((community) => community.status === "active").length === 0} className="rounded-lg bg-[#087b62] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#06644f] disabled:opacity-50">
+                          {reviewingApplicationId === application.id ? "Saving..." : "Approve & assign"}
+                        </button>
+                        <button type="button" onClick={() => void reviewChairmanApplication(application, "rejected")} disabled={reviewingApplicationId === application.id} className="rounded-lg border border-red-200 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50">
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* COMMUNITY MODERATION */}
         <section id="community-moderation" className="mt-8 scroll-mt-6 overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-sm">

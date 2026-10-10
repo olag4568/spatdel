@@ -23,6 +23,15 @@ type ChairmanProfile = {
   full_name: string | null;
   role: string;
 };
+type Community = {
+  id: string;
+  name: string;
+  description: string | null;
+  address: string | null;
+  local_government: string | null;
+  state: string | null;
+  status: string;
+};
 
 const modules = [
   {
@@ -69,6 +78,8 @@ export default function ChairmanDashboard() {
   const [profile, setProfile] = useState<ChairmanProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [communityNotice, setCommunityNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -102,6 +113,34 @@ export default function ChairmanDashboard() {
       }
 
       setProfile(data as ChairmanProfile);
+
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from("community_chairmen")
+        .select("community_id")
+        .eq("chairman_id", authData.user.id);
+
+      if (!active) return;
+
+      if (assignmentsError) {
+        setCommunityNotice("Community assignments are not available yet. Apply the SPATDEL community migration in Supabase.");
+      } else if (!assignments?.length) {
+        setCommunityNotice("No community has been assigned to your account yet. Ask the SPATDEL admin to assign your community.");
+      } else {
+        const communityIds = assignments.map((assignment) => assignment.community_id);
+        const { data: communityRows, error: communitiesError } = await supabase
+          .from("communities")
+          .select("id, name, description, address, local_government, state, status")
+          .in("id", communityIds);
+
+        if (!active) return;
+        if (communitiesError) {
+          setCommunityNotice("We could not load your assigned communities.");
+        } else {
+          setCommunities((communityRows || []) as Community[]);
+          setCommunityNotice("");
+        }
+      }
+
       setLoading(false);
     }
 

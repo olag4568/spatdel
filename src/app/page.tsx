@@ -190,6 +190,7 @@ export default function Home() {
           profile?.role === "tenant" ||
           profile?.role === "agent" ||
           profile?.role === "landlord" ||
+          profile?.role === "chairman" ||
           profile?.role === "admin"
         ) {
           setUserRole(profile.role);

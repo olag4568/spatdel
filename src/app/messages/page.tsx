@@ -70,6 +70,7 @@ function roleLabel(role: Role) {
   if (role === "admin") return "Admin";
   if (role === "agent") return "Agent";
   if (role === "landlord") return "Landlord";
+  if (role === "chairman") return "Community Chairman";
   if (role === "tenant") return "Tenant";
   return "SPATDEL member";
 }

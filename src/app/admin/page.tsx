@@ -38,6 +38,7 @@ type ChairmanApplication = {
   id: string;
   user_id: string;
   community_name: string;
+  country: string;
   state: string;
   local_government: string;
   reason: string | null;
@@ -261,7 +262,7 @@ export default function AdminDashboard() {
     const [applicationsResult, communitiesResult] = await Promise.all([
       supabase
         .from("chairman_applications")
-        .select("id, user_id, community_name, state, local_government, reason, status, created_at")
+        .select("id, user_id, community_name, country, state, local_government, reason, status, created_at")
         .order("created_at", { ascending: false }),
       supabase
         .from("communities")
@@ -929,7 +930,7 @@ export default function AdminDashboard() {
                   <p className="mt-3 font-bold">{application.applicant_name || "SPATDEL member"}</p>
                   {application.applicant_email && <p className="text-xs text-[#71808a]">{application.applicant_email}</p>}
                   <p className="mt-2 text-sm">Requested community: <strong>{application.community_name}</strong></p>
-                  <p className="text-sm text-[#71808a]">{application.local_government}, {application.state}</p>
+                  <p className="text-sm text-[#71808a]">{application.local_government}, {application.state}, {application.country}</p>
                   {application.reason && <p className="mt-2 rounded-lg bg-[#f8f7f2] p-3 text-sm leading-5">{application.reason}</p>}
                   {application.status === "pending" && (
                     <div className="mt-4 space-y-3">

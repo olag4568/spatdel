@@ -52,3 +52,16 @@ Run `supabase/migrations/20261013000000_public_member_profiles.sql` in Supabase 
 After the existing chat directory and public profile migrations, run `supabase/migrations/20261014000000_member_profiles.sql` in Supabase SQL Editor. It adds unique usernames, profile photo URLs, bios, a public `profile-photos` storage bucket with per-user upload permissions, and secure RPCs for editing and reading public profile fields. Members can edit these details at `/profile/edit` or from Account Settings. The profile editor accepts JPG, PNG, and WebP images up to 3 MB.
 
 The update RPC only permits changes to a member's display name, username, bio, and photo URL; it does not allow a user to change their account role. The migration refreshes the member directory and public-profile RPCs so the new public fields can be shown in search and messaging.
+
+
+## Community directory and membership requests
+
+The community directory is available at `/communities`. Signed-in members can search active communities and submit a membership request. Admins can review requests across active communities; a chairman can review requests only for communities assigned to them. Approvals create or reactivate a membership through a database function.
+
+Before using the directory, run `migrations/20261028000000_community_membership_requests.sql` in Supabase SQL Editor after the earlier community migrations. This migration adds request status, row-level security, and a protected review function. Do not expose a Supabase service-role key in the browser.
+
+Members with active membership can open their own community space at `/communities/[id]`. Each space has a community-scoped chat, published announcements, scheduled meetings, and a private complaint form. The new `community_chat_messages` table is protected by RLS so only active members, assigned chairmen, and admins can read or send messages in that community. Existing Community Pulse (`/community`) remains a separate shared feed/chat and is not the private chat for any one official community.
+
+Before using community spaces, run `migrations/20261029000000_community_spaces.sql` in Supabase SQL Editor after `20261028000000_community_membership_requests.sql`. The site has not yet been built or tested against the live Supabase database, so verify the migration and role permissions in a test account before launch.
+
+The community directory and individual community spaces also read a `country` field. Run `migrations/20261030000000_community_country_field.sql` after the community foundation migration to add this field safely to existing databases. Without it, the directory and room queries that select `country` can fail.

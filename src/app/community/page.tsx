@@ -9,7 +9,8 @@ import { ArrowLeft, Check, CheckCheck, Clock3, ImagePlus, LoaderCircle, MessageC
 type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null; community_label?: string | null };
 type Post = { id: string; author_id: string; body: string; image_url?: string | null; created_at: string };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
-type ChatMessage = { id: string; author_id: string; body: string; created_at: string; reply_to_id?: string | null; property_image_url?: string | null; property_type?: string | null; property_location?: string | null; property_budget?: string | null; property_question?: string | null };\ntype MessageRead = { message_id: string; user_id: string; read_at: string };
+type ChatMessage = { id: string; author_id: string; body: string; created_at: string; reply_to_id?: string | null; property_image_url?: string | null; property_type?: string | null; property_location?: string | null; property_budget?: string | null; property_question?: string | null };
+type MessageRead = { message_id: string; user_id: string; read_at: string };
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -18,17 +19,21 @@ export default function CommunityPage() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [currentRole, setCurrentRole] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);\n  const [messageReads, setMessageReads] = useState<Record<string, MessageRead[]>>({});
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messageReads, setMessageReads] = useState<Record<string, MessageRead[]>>({});
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [expandedPost, setExpandedPost] = useState("");
-  const [postDraft, setPostDraft] = useState("");\n  const [editingPostId, setEditingPostId] = useState("");
+  const [postDraft, setPostDraft] = useState("");
+  const [editingPostId, setEditingPostId] = useState("");
   const [postImage, setPostImage] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollChatRef = useRef(true);
   const previousMessageCountRef = useRef(0);
-  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});\n  const [emojiPickerPost, setEmojiPickerPost] = useState("");\n  const [markedReadIds, setMarkedReadIds] = useState<string[]>([]);
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [emojiPickerPost, setEmojiPickerPost] = useState("");
+  const [markedReadIds, setMarkedReadIds] = useState<string[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [propertyImage, setPropertyImage] = useState<File | null>(null);
   const [propertyPreview, setPropertyPreview] = useState("");
@@ -127,7 +132,34 @@ export default function CommunityPage() {
     await loadProfiles(rows.map((c) => c.author_id));
   }
 
-  async function editPost(post: Post) {\n    if (post.author_id !== userId || !["admin", "chairman"].includes(currentRole)) return;\n    const nextBody = window.prompt("Edit your community post", post.body);\n    if (nextBody === null) return;\n    const body = nextBody.trim();\n    if (!body && !post.image_url) { setError("A post must contain text or a picture."); return; }\n    const { error: updateError } = await supabase.from("spatdel_community_posts").update({ body }).eq("id", post.id).eq("author_id", userId);\n    if (updateError) { setError("Could not edit your post. Check the latest Community Pulse migration."); return; }\n    setNotice("Your post was updated."); await loadPosts();\n  }\n\n  async function deletePost(post: Post) {\n    if (post.author_id !== userId || !["admin", "chairman"].includes(currentRole)) return;\n    if (!window.confirm("Delete your community post? This cannot be undone.")) return;\n    const { error: deleteError } = await supabase.from("spatdel_community_posts").delete().eq("id", post.id).eq("author_id", userId);\n    if (deleteError) { setError("Could not delete your post. Check the latest Community Pulse migration."); return; }\n    setNotice("Your post was deleted."); await loadPosts();\n  }\n\n  async function markMessageRead(message: ChatMessage) {\n    if (message.author_id === userId || markedReadIds.includes(message.id)) return;\n    const { error: readError } = await supabase.from("spatdel_community_message_reads").insert({ message_id: message.id, user_id: userId });\n    if (readError && readError.code !== "23505") { setError("Could not mark this message as read."); return; }\n    setMarkedReadIds((current) => current.includes(message.id) ? current : [...current, message.id]);\n    setMessageReads((current) => ({ ...current, [message.id]: [...(current[message.id] || []), { message_id: message.id, user_id: userId, read_at: new Date().toISOString() }] }));\n  }\n\n  async function submitPost(event: FormEvent<HTMLFormElement>) {
+  async function editPost(post: Post) {
+    if (post.author_id !== userId || !["admin", "chairman"].includes(currentRole)) return;
+    const nextBody = window.prompt("Edit your community post", post.body);
+    if (nextBody === null) return;
+    const body = nextBody.trim();
+    if (!body && !post.image_url) { setError("A post must contain text or a picture."); return; }
+    const { error: updateError } = await supabase.from("spatdel_community_posts").update({ body }).eq("id", post.id).eq("author_id", userId);
+    if (updateError) { setError("Could not edit your post. Check the latest Community Pulse migration."); return; }
+    setNotice("Your post was updated."); await loadPosts();
+  }
+
+  async function deletePost(post: Post) {
+    if (post.author_id !== userId || !["admin", "chairman"].includes(currentRole)) return;
+    if (!window.confirm("Delete your community post? This cannot be undone.")) return;
+    const { error: deleteError } = await supabase.from("spatdel_community_posts").delete().eq("id", post.id).eq("author_id", userId);
+    if (deleteError) { setError("Could not delete your post. Check the latest Community Pulse migration."); return; }
+    setNotice("Your post was deleted."); await loadPosts();
+  }
+
+  async function markMessageRead(message: ChatMessage) {
+    if (message.author_id === userId || markedReadIds.includes(message.id)) return;
+    const { error: readError } = await supabase.from("spatdel_community_message_reads").insert({ message_id: message.id, user_id: userId });
+    if (readError && readError.code !== "23505") { setError("Could not mark this message as read."); return; }
+    setMarkedReadIds((current) => current.includes(message.id) ? current : [...current, message.id]);
+    setMessageReads((current) => ({ ...current, [message.id]: [...(current[message.id] || []), { message_id: message.id, user_id: userId, read_at: new Date().toISOString() }] }));
+  }
+
+  async function submitPost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setNotice("");
     const body = postDraft.trim();
     if ((!body && !postImage) || !userId || sending) return;

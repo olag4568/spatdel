@@ -41,7 +41,7 @@ export default function CommunityPage() {
 
   const loadPosts = useCallback(async () => {
     const { data, error: loadError } = await supabase.from("spatdel_community_posts").select("id, author_id, body, image_url, created_at").order("created_at", { ascending: false }).limit(50);
-    if (loadError) { setError("Could not load community posts. Check that the Community Pulse SQL migration has been run."); return; }
+    if (loadError) { setError(`Could not load community posts: ${loadError.message}. In Supabase SQL Editor, run the Community Pulse migration and 20261022000000_community_post_access_and_images.sql, then refresh this page.`); return; }
     const rows = (data || []) as Post[];
     setPosts(rows);
     await loadProfiles(rows.map((p) => p.author_id));

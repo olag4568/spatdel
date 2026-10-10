@@ -25,6 +25,9 @@ export default function CommunityPage() {
   const [postImage, setPostImage] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollChatRef = useRef(true);
+  const previousMessageCountRef = useRef(0);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});\n  const [emojiPickerPost, setEmojiPickerPost] = useState("");\n  const [markedReadIds, setMarkedReadIds] = useState<string[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [propertyImage, setPropertyImage] = useState<File | null>(null);
@@ -97,6 +100,23 @@ export default function CommunityPage() {
     const timer = setInterval(() => { void loadPosts(); void loadMessages(); }, 5000);
     return () => { active = false; clearInterval(timer); };
   }, [router, loadPosts, loadMessages]);
+
+  useEffect(() => {
+    const container = chatScrollRef.current;
+    if (!container || tab !== "chat") return;
+    const hasNewMessages = messages.length !== previousMessageCountRef.current;
+    if (hasNewMessages && shouldAutoScrollChatRef.current) {
+      container.scrollTo({ top: container.scrollHeight, behavior: previousMessageCountRef.current === 0 ? "auto" : "smooth" });
+    }
+    previousMessageCountRef.current = messages.length;
+  }, [messages.length, tab, loading]);
+
+  function handleChatScroll() {
+    const container = chatScrollRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldAutoScrollChatRef.current = distanceFromBottom < 120;
+  }
 
   async function loadComments(postId: string) {
     setExpandedPost((current) => current === postId ? "" : postId);
@@ -259,7 +279,7 @@ export default function CommunityPage() {
         ) : (
           <section className="mt-6 overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-[#102f46]/10 bg-[#e4f5ee] px-5 py-4"><div><h2 className="font-black">SPATDEL Live Room</h2><p className="mt-1 text-xs text-[#71808a]">All signed-in SPATDEL users can join. Messages refresh automatically every 5 seconds.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#087b62]"><span className="h-2 w-2 rounded-full bg-[#087b62]" /> All members</span></div>
-            <div className="flex h-[55vh] min-h-[340px] flex-col gap-3 overflow-y-auto bg-[#f8f7f2] p-4 sm:p-6">
+            <div ref={chatScrollRef} onScroll={handleChatScroll} className="flex h-[55vh] min-h-[340px] flex-col gap-3 overflow-y-auto bg-[#f8f7f2] p-4 sm:p-6">
               {messages.length === 0 ? <p className="m-auto text-center text-sm text-[#71808a]">No messages yet. Start the conversation 👋</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl p-3 shadow-sm sm:max-w-[70%] ${message.author_id === userId ? "ml-auto bg-[#087b62] text-white" : "mr-auto bg-white text-[#102f46]"}`}>
                 <button onClick={() => memberLink(message.author_id)} className="mb-2 flex items-center gap-2 text-left"><span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e4f5ee] text-xs font-black text-[#087b62]">{profiles[message.author_id]?.avatar_url ? <img src={profiles[message.author_id].avatar_url!} alt="" className="h-full w-full object-cover" /> : displayName(message.author_id).replace(/^@/, "").slice(0, 1).toUpperCase()}</span><span><b className={`block text-xs ${message.author_id === userId ? "text-[#c9ffe8]" : "text-[#087b62]"}`}>{message.author_id === userId ? "You" : displayName(message.author_id)}</b><span className="block text-[10px] opacity-70">{roleLabel(message.author_id)} · View profile</span></span></button>
                 {communityLabel(message.author_id) && <p className="mb-1 text-[10px] font-semibold opacity-75">Community: {communityLabel(message.author_id)}</p>}

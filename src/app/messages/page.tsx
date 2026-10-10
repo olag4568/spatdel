@@ -107,6 +107,7 @@ function MessagesContent() {
   const [linkedProperty, setLinkedProperty] = useState<PropertyDetails | null>(null);
   const [propertyDetailsOpen, setPropertyDetailsOpen] = useState(false);
   const [propertyLoading, setPropertyLoading] = useState(false);
+  const [conversationProperties, setConversationProperties] = useState<Record<string, PropertyDetails>>({});
   const lastUnreadCount = useRef<number | null>(null);
 
   const loadConversations = useCallback(async (userId: string) => {
@@ -240,6 +241,42 @@ function MessagesContent() {
   }, [router, supabase]);
 
   const activeChat = conversations.find((chat) => chat.id === activeConversationId);
+
+  // Load property previews for the chat list. This helps agents and landlords
+  // distinguish conversations when several enquiries concern different listings.
+  useEffect(() => {
+    let active = true;
+
+    async function loadConversationProperties() {
+      const propertyIds = Array.from(new Set(
+        conversations.map((chat) => chat.property_id).filter((id): id is string => Boolean(id))
+      ));
+      if (propertyIds.length === 0) {
+        setConversationProperties({});
+        return;
+      }
+
+      const { data, error: propertyListError } = await supabase
+        .from("properties")
+        .select("id, title, price, image, location, beds, baths, sqm, type, listing_purpose, description, flood, power, flood_risk, power_hours, verified")
+        .in("id", propertyIds);
+
+      if (!active) return;
+      if (propertyListError) {
+        console.error("Could not load chat property previews:", propertyListError);
+        return;
+      }
+
+      const propertyMap: Record<string, PropertyDetails> = {};
+      ((data ?? []) as PropertyDetails[]).forEach((property) => {
+        propertyMap[property.id] = property;
+      });
+      setConversationProperties(propertyMap);
+    }
+
+    void loadConversationProperties();
+    return () => { active = false; };
+  }, [conversations, supabase]);
 
   // Load the property linked to this conversation so both sides can see exactly
   // which listing the chat is about.
@@ -647,7 +684,7 @@ function MessagesContent() {
                 {conversations.map((chat) => (
                   <button key={chat.id} onClick={() => { setNewChatTargetId(""); setPendingPropertyId(chat.property_id); setActiveConversationId(chat.id); setDirectoryOpen(false); setError(""); }} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left transition ${activeConversationId === chat.id ? "bg-[#e8f4ed]" : "hover:bg-[#f5f7f8]"}`}>
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8f0f4]">{people.find((person) => person.id === chat.otherUserId)?.avatar_url ? <img src={people.find((person) => person.id === chat.otherUserId)?.avatar_url ?? ""} alt="" className="h-full w-full object-cover" /> : <CircleUserRound size={21} />}</div>
-                    <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{chat.otherName}</p><span className="text-[10px] text-[#8a969f]">{new Date(chat.updated_at).toLocaleDateString("en-NG")}</span></div><p className="mt-1 text-xs font-semibold text-[#087b62]">{roleLabel(chat.otherRole)}</p><p className="mt-1 truncate text-xs text-[#8a969f]">{chat.title || "Direct message"}</p><p className="mt-1 text-[10px] font-semibold text-[#f05a00]">{/* unread counts are shown in the header */}</p></div>
+                    <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-bold">{chat.otherName}</p><span className="text-[10px] text-[#8a969f]">{new Date(chat.updated_at).toLocaleDateString("en-NG")}</span></div><p className="mt-1 text-xs font-semibold text-[#087b62]">{roleLabel(chat.otherRole)}</p>{conversationProperties[chat.property_id ?? ""] ? <div className="mt-2 flex items-center gap-2 rounded-lg bg-white p-1.5"><div className="h-10 w-12 shrink-0 overflow-hidden rounded-md bg-[#e8f0f4]">{conversationProperties[chat.property_id ?? ""]?.image ? <img src={conversationProperties[chat.property_id ?? ""]?.image ?? ""} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[8px] text-[#687987]">No photo</div>}</div><div className="min-w-0"><p className="truncate text-[11px] font-bold text-[#102f46]">{conversationProperties[chat.property_id ?? ""]?.title}</p><p className="truncate text-[10px] text-[#687987]">{conversationProperties[chat.property_id ?? ""]?.price || "Price not provided"}</p></div></div> : <p className="mt-1 truncate text-xs text-[#8a969f]">{chat.title || "Direct message"}</p>}<p className="mt-1 text-[10px] font-semibold text-[#f05a00]">{/* unread counts are shown in the header */}</p></div>
                   </button>
                 ))}
                 {conversations.length === 0 && <div className="p-6 text-center"><MessageCircle className="mx-auto text-[#9aa7af]" size={26} /><p className="mt-3 text-sm font-bold">No chats yet</p><p className="mt-1 text-xs leading-5 text-[#687987]">Start a conversation with a tenant, agent, landlord, or admin.</p><button onClick={() => setDirectoryOpen(true)} className="mt-4 rounded-full bg-[#102f46] px-4 py-2 text-xs font-bold text-white">Start a chat</button></div>}

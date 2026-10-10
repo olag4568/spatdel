@@ -92,6 +92,7 @@ export default function Home() {
   // USER ROLE
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
+  const [chairmanApplicationStatus, setChairmanApplicationStatus] = useState<"pending" | "approved" | "rejected" | null>(null);
 
   // SAVED PROPERTIES
   const [savedPropertyIds, setSavedPropertyIds] = useState<string[]>([]);
@@ -166,6 +167,7 @@ export default function Home() {
     async function loadProfile() {
       if (!user) {
         setUserRole(null);
+        setChairmanApplicationStatus(null);
         setRoleLoading(false);
         return;
       }
@@ -183,19 +185,38 @@ export default function Home() {
       if (error) {
         console.error("Failed to load user profile:", error);
         setUserRole(null);
+        setChairmanApplicationStatus(null);
       } else {
         const profile = data as Profile | null;
-
-        if (
+        const role: UserRole =
           profile?.role === "tenant" ||
           profile?.role === "agent" ||
           profile?.role === "landlord" ||
           profile?.role === "chairman" ||
           profile?.role === "admin"
-        ) {
-          setUserRole(profile.role);
+            ? profile.role
+            : "tenant";
+        setUserRole(role);
+
+        if (role === "chairman") {
+          setChairmanApplicationStatus("approved");
         } else {
-          setUserRole("tenant");
+          const { data: application } = await supabase
+            .from("chairman_applications")
+            .select("status")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!mounted) return;
+          setChairmanApplicationStatus(
+            application?.status === "pending" ||
+            application?.status === "approved" ||
+            application?.status === "rejected"
+              ? application.status
+              : null
+          );
         }
       }
 
@@ -984,7 +1005,15 @@ export default function Home() {
     }
 
     if (userRole === "chairman") {
-      return "Community Chairman";
+      return "Approved Chairman";
+    }
+
+    if (chairmanApplicationStatus === "pending") {
+      return "Chairman Application Pending";
+    }
+
+    if (chairmanApplicationStatus === "rejected") {
+      return "Chairman Application Rejected";
     }
 
     if (userRole === "agent") {

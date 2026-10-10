@@ -46,7 +46,7 @@ type SavedPropertyRow = {
   property_id: string;
 };
 
-type UserRole = "tenant" | "agent" | "landlord" | "admin";
+type UserRole = "tenant" | "agent" | "landlord" | "chairman" | "admin";
 
 type Profile = {
   role: UserRole;
@@ -366,6 +366,11 @@ export default function Home() {
   function goToAccount() {
     setProfileMenu(false);
     setMobileMenu(false);
+
+    if (userRole === "chairman") {
+      router.push("/chairman");
+      return;
+    }
 
     if (userRole === "agent" || userRole === "landlord") {
       router.push("/agent");
@@ -975,6 +980,10 @@ export default function Home() {
 
     if (userRole === "landlord") {
       return "Landlord";
+    }
+
+    if (userRole === "chairman") {
+      return "Community Chairman";
     }
 
     if (userRole === "agent") {

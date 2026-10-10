@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Check,
+  CheckCheck,
   CircleUserRound,
   LoaderCircle,
   MessageCircle,
@@ -76,7 +77,8 @@ function roleLabel(role: Role) {
 }
 
 function displayName(profile: Profile | undefined) {
-  return profile?.full_name?.trim() || roleLabel(profile?.role ?? "member");
+  const username = profile?.username?.trim().replace(/^@/, "");
+  return username ? `@${username}` : profile?.full_name?.trim() || roleLabel(profile?.role ?? "member");
 }
 
 function MessagesContent() {
@@ -738,7 +740,7 @@ function MessagesContent() {
                   {loadingMessages ? <div className="flex justify-center py-10"><LoaderCircle className="animate-spin text-[#087b62]" size={24} /></div> : messages.length === 0 ? <div className="flex h-full min-h-48 flex-col items-center justify-center text-center"><MessageCircle size={32} className="text-[#9aa7af]" /><p className="mt-3 font-bold">Start the conversation</p><p className="mt-1 max-w-xs text-xs leading-5 text-[#687987]">Be respectful and confirm property details before making payments.</p></div> : messages.map((message) => {
                     const own = message.sender_id === currentUserId;
                     const sender = own ? myProfile : people.find((person) => person.id === message.sender_id);
-                    return <div key={message.id} className={`flex ${own ? "justify-end" : "justify-start"}`}><div className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm sm:max-w-[75%] ${own ? "rounded-br-md bg-[#102f46] text-white" : "rounded-bl-md border border-[#e1e7ea] bg-white text-[#102f46]"}`}><div className="mb-2 flex items-center gap-2"><span className={`text-[10px] font-bold ${own ? "text-[#c5d3dc]" : "text-[#087b62]"}`}>{own ? "You" : displayName(sender)}</span><span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${own ? "bg-white/10 text-[#d4dfe5]" : "bg-[#f0f4f5] text-[#687987]"}`}>{roleLabel(sender?.role ?? "member")}</span></div><p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p><div className={`mt-2 flex items-center justify-end gap-1 text-[10px] ${own ? "text-[#c5d3dc]" : "text-[#8a969f]"}`}>{new Date(message.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}{own && message.read_at && <Check size={12} />}</div></div></div>;
+                    return <div key={message.id} className={`flex ${own ? "justify-end" : "justify-start"}`}><div className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm sm:max-w-[75%] ${own ? "rounded-br-md bg-[#102f46] text-white" : "rounded-bl-md border border-[#e1e7ea] bg-white text-[#102f46]"}`}><div className="mb-2 flex items-center gap-2"><span className={`text-[10px] font-bold ${own ? "text-[#c5d3dc]" : "text-[#087b62]"}`}>{own ? "You" : displayName(sender)}</span><span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${own ? "bg-white/10 text-[#d4dfe5]" : "bg-[#f0f4f5] text-[#687987]"}`}>{roleLabel(sender?.role ?? "member")}</span></div><p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p><div className={`mt-2 flex items-center justify-end gap-1 text-[10px] ${own ? "text-[#c5d3dc]" : "text-[#8a969f]"}`}>{new Date(message.created_at).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}{own && (message.read_at ? <><CheckCheck size={13} /><span>Read</span></> : <><Check size={12} /><span>Sent</span></>)}</div></div></div>;
                   })}
                 </div>
 

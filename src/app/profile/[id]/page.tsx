@@ -126,8 +126,8 @@ function PublicProfileContent() {
             <img src="/spatdel.png" alt="SPATDEL" className="h-10 w-auto object-contain" />
             <span className="font-bold">SPATDEL Profile</span>
           </button>
-          <button onClick={() => router.push("/messages")} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]">
-            <ArrowLeft size={16} /> Messages
+          <button onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/"); }} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]">
+            <ArrowLeft size={16} /> Back
           </button>
         </div>
       </header>

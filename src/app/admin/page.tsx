@@ -144,6 +144,7 @@ export default function AdminDashboard() {
   const [newCommunityState, setNewCommunityState] = useState("");
   const [newCommunityLga, setNewCommunityLga] = useState("");
   const [creatingCommunity, setCreatingCommunity] = useState(false);
+  const [deletingCommunityId, setDeletingCommunityId] = useState<string | null>(null);
   const [loadingReports, setLoadingReports] = useState(false);
   const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
 
@@ -533,6 +534,39 @@ export default function AdminDashboard() {
     setNewCommunityLga("");
     setSuccess("Community created successfully.");
     setCreatingCommunity(false);
+  }
+
+  async function deleteCommunity(community: CommunityOption) {
+    const confirmed = window.confirm(
+      `Delete "${community.name}" permanently? Any chairman assignment to this community will also be removed.`
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setSuccess("");
+    setDeletingCommunityId(community.id);
+
+    const { error: deleteError } = await supabase
+      .from("communities")
+      .delete()
+      .eq("id", community.id);
+
+    if (deleteError) {
+      setError(`Could not delete community: ${deleteError.message}`);
+      setDeletingCommunityId(null);
+      return;
+    }
+
+    setCommunities((current) => current.filter((item) => item.id !== community.id));
+    setSelectedCommunityByApplication((current) => {
+      const next = { ...current };
+      for (const [applicationId, selectedId] of Object.entries(next)) {
+        if (selectedId === community.id) delete next[applicationId];
+      }
+      return next;
+    });
+    setSuccess(`Community "${community.name}" deleted successfully.`);
+    setDeletingCommunityId(null);
   }
 
   async function reviewChairmanApplication(application: ChairmanApplication, decision: "approved" | "rejected") {
@@ -955,9 +989,24 @@ export default function AdminDashboard() {
               </div>
               <div className="mt-4 border-t border-[#102f46]/10 pt-3">
                 <p className="text-xs font-bold text-[#102f46]">{communities.length} communities available</p>
-                {communities.slice(0, 5).map((community) => (
-                  <p key={community.id} className="mt-2 text-xs text-[#71808a]">{community.name} · {community.local_government || "Area not set"}, {community.state || "Region not set"}, {community.country || "Country not set"}</p>
-                ))}
+                {communities.length === 0 ? (
+                  <p className="mt-2 text-xs text-[#71808a]">No communities created yet.</p>
+                ) : (
+                  <div className="mt-2 max-h-64 space-y-2 overflow-y-auto">
+                    {communities.map((community) => (
+                      <div key={community.id} className="flex items-start justify-between gap-3 rounded-lg border border-[#102f46]/10 bg-white p-2.5">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[#102f46]">{community.name}</p>
+                          <p className="mt-1 text-[11px] leading-4 text-[#71808a]">{community.local_government || "Area not set"}, {community.state || "Region not set"}, {community.country || "Country not set"}</p>
+                          <p className="mt-1 text-[10px] uppercase tracking-wide text-[#71808a]">{community.status}</p>
+                        </div>
+                        <button type="button" onClick={() => void deleteCommunity(community)} disabled={deletingCommunityId === community.id} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-red-200 px-2 py-1.5 text-[11px] font-bold text-red-700 hover:bg-red-50 disabled:opacity-50" aria-label={`Delete ${community.name}`}>
+                          <Trash2 size={13} /> {deletingCommunityId === community.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </form>
 

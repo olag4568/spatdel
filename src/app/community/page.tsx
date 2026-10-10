@@ -9,7 +9,7 @@ import { ArrowLeft, Clock3, ImagePlus, LoaderCircle, MessageCircle, MessagesSqua
 type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null; community_label?: string | null };
 type Post = { id: string; author_id: string; body: string; image_url?: string | null; created_at: string };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
-type ChatMessage = { id: string; author_id: string; body: string; created_at: string };
+type ChatMessage = { id: string; author_id: string; body: string; created_at: string; reply_to_id?: string | null };
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function CommunityPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [chatDraft, setChatDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [tab, setTab] = useState<"posts" | "chat">("posts");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -59,7 +60,7 @@ export default function CommunityPage() {
   }, [loadProfiles]);
 
   const loadMessages = useCallback(async () => {
-    const { data, error: loadError } = await supabase.from("spatdel_community_messages").select("id, author_id, body, created_at").order("created_at", { ascending: false }).limit(100);
+    const { data, error: loadError } = await supabase.from("spatdel_community_messages") .select("id, author_id, body, created_at, reply_to_id").order("created_at", { ascending: false }).limit(100);
     if (loadError) { setError("Could not load the live room. Check the Community Pulse SQL migration."); return; }
     const rows = ((data || []) as ChatMessage[]).reverse();
     setMessages(rows);
@@ -144,10 +145,10 @@ export default function CommunityPage() {
     const body = chatDraft.trim();
     if (!body || !userId || sending) return;
     setSending(true);
-    const { error: insertError } = await supabase.from("spatdel_community_messages").insert({ author_id: userId, body });
+    const { error: insertError } = await supabase.from("spatdel_community_messages").insert({ author_id: userId, body, reply_to_id: replyTo?.id || null });
     setSending(false);
     if (insertError) { setError("Message could not be sent. Please try again."); return; }
-    setChatDraft(""); await loadMessages();
+    setChatDraft(""); setReplyTo(null); await loadMessages();
   }
 
   async function reportContent(targetType: "post" | "comment" | "message", targetId: string) {
@@ -235,11 +236,13 @@ export default function CommunityPage() {
               {messages.length === 0 ? <p className="m-auto text-center text-sm text-[#71808a]">No messages yet. Start the conversation 👋</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl p-3 shadow-sm sm:max-w-[70%] ${message.author_id === userId ? "ml-auto bg-[#087b62] text-white" : "mr-auto bg-white text-[#102f46]"}`}>
                 <button onClick={() => memberLink(message.author_id)} className={`mb-1 block text-xs font-black underline-offset-2 hover:underline ${message.author_id === userId ? "text-[#c9ffe8]" : "text-[#087b62]"}`}>{message.author_id === userId ? "You" : displayName(message.author_id)} <span className="font-normal opacity-70">· {roleLabel(message.author_id)}</span></button>
                 {communityLabel(message.author_id) && <p className="mb-1 text-[10px] font-semibold opacity-75">Community: {communityLabel(message.author_id)}</p>}
+                {message.reply_to_id && <p className="mb-2 rounded-lg bg-black/5 px-2 py-1 text-[10px] opacity-80">↳ Replying to {displayName(messages.find((item) => item.id === message.reply_to_id)?.author_id || "")}: {messages.find((item) => item.id === message.reply_to_id)?.body?.slice(0, 100) || "earlier message"}</p>}
                 <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
-                <div className="mt-2 flex items-center justify-between gap-4 text-[10px] opacity-65"><span className="inline-flex items-center gap-1"><Clock3 size={11} />{timeLabel(message.created_at)}</span><button onClick={() => void reportContent("message", message.id)} title="Report message"><ShieldAlert size={13} /></button></div>
+                <div className="mt-2 flex items-center justify-between gap-4 text-[10px] opacity-65"><span className="inline-flex items-center gap-1"><Clock3 size={11} />{timeLabel(message.created_at)}</span><span className="flex items-center gap-3"><button onClick={() => setReplyTo(message)} title="Reply to message" className="inline-flex items-center gap-1 font-bold"><MessageCircle size={13} /> Reply</button><button onClick={() => void reportContent("message", message.id)} title="Report message"><ShieldAlert size={13} /></button></span></div>
               </div>)}
             </div>
-            <form onSubmit={submitChat} className="flex gap-2 border-t border-[#102f46]/10 p-3 sm:p-4"><input value={chatDraft} onChange={(e) => setChatDraft(e.target.value.slice(0, 1000))} maxLength={1000} placeholder="Send a message to the community..." className="min-w-0 flex-1 rounded-xl border border-[#102f46]/15 px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><button disabled={!chatDraft.trim() || sending} aria-label="Send community message" className="flex items-center justify-center rounded-xl bg-[#087b62] px-5 text-white disabled:opacity-50"><Send size={18} /></button></form>
+            {replyTo && <div className="flex items-center justify-between gap-3 border-t border-[#102f46]/10 bg-[#e4f5ee] px-4 py-2 text-xs"><span>Replying to <b>{displayName(replyTo.author_id)}</b>: {replyTo.body.slice(0, 90)}</span><button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply"><X size={16} /></button></div>}
+            <form onSubmit={submitChat} className="flex gap-2 border-t border-[#102f46]/10 p-3 sm:p-4"><input value={chatDraft} onChange={(e) => setChatDraft(e.target.value.slice(0, 1000))} maxLength={1000} placeholder={replyTo ? "Write your reply..." : "Send a message to the community..."} className="min-w-0 flex-1 rounded-xl border border-[#102f46]/15 px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><button disabled={!chatDraft.trim() || sending} aria-label="Send community message" className="flex items-center justify-center rounded-xl bg-[#087b62] px-5 text-white disabled:opacity-50"><Send size={18} /></button></form>
           </section>
         )}
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-[#102f46]/10 bg-white p-4 text-xs leading-5 text-[#71808a]"><ShieldAlert className="mt-0.5 shrink-0 text-[#087b62]" size={18} /><p>Keep your exact home address, passwords, bank details, and private contact information out of public discussions. Report abusive or suspicious content. Reports are stored for moderation; an admin review dashboard still needs to be connected.</p></div>

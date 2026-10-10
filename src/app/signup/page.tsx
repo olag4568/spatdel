@@ -26,6 +26,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [communityName, setCommunityName] = useState("");
+  const [communityCountry, setCommunityCountry] = useState("");
   const [communityState, setCommunityState] = useState("");
   const [localGovernment, setLocalGovernment] = useState("");
   const [applicationReason, setApplicationReason] = useState("");
@@ -74,8 +75,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (role === "chairman" && (!communityName.trim() || !communityState.trim() || !localGovernment.trim())) {
-      setError("Please enter your community name, state, and local government area.");
+    if (role === "chairman" && (!communityName.trim() || !communityCountry.trim() || !communityState.trim() || !localGovernment.trim())) {
+      setError("Please enter your country, region/state, administrative area, and community name.");
       return;
     }
 
@@ -93,6 +94,7 @@ export default function SignupPage() {
             requested_role: role === "chairman" ? "chairman" : role,
             ...(role === "chairman" ? {
               chairman_community_name: communityName.trim(),
+              chairman_country: communityCountry.trim(),
               chairman_state: communityState.trim(),
               chairman_local_government: localGovernment.trim(),
               chairman_application_reason: applicationReason.trim(),
@@ -359,11 +361,15 @@ export default function SignupPage() {
                       <input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Your community or estate name" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">State</label>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Country</label>
+                      <input value={communityCountry} onChange={(e) => setCommunityCountry(e.target.value)} placeholder="e.g. Nigeria, Ghana, United Kingdom" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">State / province / region</label>
                       <input value={communityState} onChange={(e) => setCommunityState(e.target.value)} placeholder="e.g. Lagos" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Local government area</label>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">District / county / local government area</label>
                       <input value={localGovernment} onChange={(e) => setLocalGovernment(e.target.value)} placeholder="e.g. Ikeja" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
                     </div>
                     <div>

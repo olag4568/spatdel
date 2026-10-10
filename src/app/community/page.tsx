@@ -9,7 +9,7 @@ import { ArrowLeft, Clock3, ImagePlus, LoaderCircle, MessageCircle, MessagesSqua
 type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null; community_label?: string | null };
 type Post = { id: string; author_id: string; body: string; image_url?: string | null; created_at: string };
 type Comment = { id: string; post_id: string; author_id: string; body: string; created_at: string };
-type ChatMessage = { id: string; author_id: string; body: string; created_at: string; reply_to_id?: string | null };
+type ChatMessage = { id: string; author_id: string; body: string; created_at: string; reply_to_id?: string | null; property_image_url?: string | null; property_type?: string | null; property_location?: string | null; property_budget?: string | null; property_question?: string | null };
 
 export default function CommunityPage() {
   const router = useRouter();
@@ -27,6 +27,14 @@ export default function CommunityPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [chatDraft, setChatDraft] = useState("");
+  const [propertyImage, setPropertyImage] = useState<File | null>(null);
+  const [propertyPreview, setPropertyPreview] = useState("");
+  const [propertyType, setPropertyType] = useState("Apartment");
+  const [propertyLocation, setPropertyLocation] = useState("");
+  const [propertyBudget, setPropertyBudget] = useState("");
+  const [propertyQuestion, setPropertyQuestion] = useState("");
+  const [showPropertyInquiry, setShowPropertyInquiry] = useState(false);
+  const propertyInputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [tab, setTab] = useState<"posts" | "chat">("posts");
   const [loading, setLoading] = useState(true);
@@ -60,7 +68,7 @@ export default function CommunityPage() {
   }, [loadProfiles]);
 
   const loadMessages = useCallback(async () => {
-    const { data, error: loadError } = await supabase.from("spatdel_community_messages") .select("id, author_id, body, created_at, reply_to_id").order("created_at", { ascending: false }).limit(100);
+    const { data, error: loadError } = await supabase.from("spatdel_community_messages") .select("id, author_id, body, created_at, reply_to_id, property_image_url, property_type, property_location, property_budget, property_question").order("created_at", { ascending: false }).limit(100);
     if (loadError) { setError("Could not load the live room. Check the Community Pulse SQL migration."); return; }
     const rows = ((data || []) as ChatMessage[]).reverse();
     setMessages(rows);
@@ -151,6 +159,25 @@ export default function CommunityPage() {
     setChatDraft(""); setReplyTo(null); await loadMessages();
   }
 
+  async function submitPropertyInquiry(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(""); setNotice("");
+    if (currentRole !== "tenant") { setError("Only tenant accounts can upload a property inquiry here."); return; }
+    if (!userId || !propertyImage || !propertyLocation.trim() || !propertyQuestion.trim() || sending) { setError("Add a property picture, location, and your question so members can help."); return; }
+    setSending(true);
+    const safeName = propertyImage.name.toLowerCase().replace(/[^a-z0-9.-]/g, "-");
+    const path = `${userId}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage.from("community-property-inquiries").upload(path, propertyImage, { upsert: false, contentType: propertyImage.type });
+    if (uploadError) { setSending(false); setError("Property picture upload failed. Make sure the property inquiry migration has been run in Supabase."); return; }
+    const imageUrl = supabase.storage.from("community-property-inquiries").getPublicUrl(path).data.publicUrl;
+    const summary = `Property question: ${propertyType}. Location: ${propertyLocation.trim()}. ${propertyBudget.trim() ? `Budget: ${propertyBudget.trim()}. ` : ""}${propertyQuestion.trim()}`;
+    const { error: insertError } = await supabase.from("spatdel_community_messages").insert({ author_id: userId, body: summary, property_image_url: imageUrl, property_type: propertyType, property_location: propertyLocation.trim(), property_budget: propertyBudget.trim() || null, property_question: propertyQuestion.trim() });
+    setSending(false);
+    if (insertError) { setError(`Property question could not be posted: ${insertError.message}`); return; }
+    setPropertyImage(null); setPropertyPreview(""); setPropertyLocation(""); setPropertyBudget(""); setPropertyQuestion("");
+    setShowPropertyInquiry(false); if (propertyInputRef.current) propertyInputRef.current.value = "";
+    setNotice("Your property question is in the live community chat."); await loadMessages();
+  }
+
   async function reportContent(targetType: "post" | "comment" | "message", targetId: string) {
     const reason = window.prompt("Why are you reporting this content? (At least 3 characters)");
     if (!reason?.trim()) return;
@@ -161,7 +188,7 @@ export default function CommunityPage() {
 
   function displayName(id: string) {
     const p = profiles[id];
-    return p?.full_name || (p?.username ? "@" + p.username : "SPATDEL member");
+    return p?.username ? "@" + p.username : (p?.full_name || "SPATDEL member");
   }
 
   function roleLabel(id: string) {
@@ -174,7 +201,7 @@ export default function CommunityPage() {
   }
 
   function memberLink(id: string) {
-    router.push("/profile/" + id);
+    router.push("/profile/" + id + "?returnTo=" + encodeURIComponent("/community"));
   }
 
   function timeLabel(value: string) {
@@ -223,7 +250,7 @@ export default function CommunityPage() {
                 {post.body && <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6">{post.body}</p>}
                 {post.image_url && <div className="mt-4 overflow-hidden rounded-xl border border-[#102f46]/10 bg-[#f8f7f2]"><img src={post.image_url} alt={post.body || "Community post picture"} className="max-h-[520px] w-full object-contain" /></div>}
                 <div className="mt-4 border-t border-[#102f46]/10 pt-3"><button onClick={() => void loadComments(post.id)} className="inline-flex items-center gap-2 text-sm font-bold text-[#087b62]"><MessageCircle size={16} /> {expandedPost === post.id ? "Hide replies" : "View / reply to comments"} <span className="text-xs font-normal text-[#71808a]">{comments[post.id]?.length ? `(${comments[post.id].length})` : ""}</span></button></div>
-                {expandedPost === post.id && <div className="mt-4 space-y-3">{(comments[post.id] || []).map((comment) => <div key={comment.id} className="rounded-lg bg-[#f8f7f2] p-3"><div className="flex items-start justify-between gap-2"><button onClick={() => memberLink(comment.author_id)} className="text-xs font-black hover:text-[#087b62]">{displayName(comment.author_id)}</button><button title="Report comment" onClick={() => void reportContent("comment", comment.id)} className="text-[#71808a] hover:text-red-600"><ShieldAlert size={14} /></button></div><p className="mt-1 whitespace-pre-wrap break-words text-sm">{comment.body}</p><p className="mt-2 text-[10px] text-[#71808a]">{timeLabel(comment.created_at)}</p></div>)}
+                {expandedPost === post.id && <div className="mt-4 space-y-3">{(comments[post.id] || []).map((comment) => <div key={comment.id} className="rounded-lg bg-[#f8f7f2] p-3"><div className="flex items-start justify-between gap-2"><button onClick={() => memberLink(comment.author_id)} className="flex items-center gap-2 text-left text-xs font-black hover:text-[#087b62]"><span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white text-[#087b62]">{profiles[comment.author_id]?.avatar_url ? <img src={profiles[comment.author_id].avatar_url!} alt="" className="h-full w-full object-cover" /> : displayName(comment.author_id).replace(/^@/, "").slice(0,1).toUpperCase()}</span><span>{displayName(comment.author_id)}<span className="mt-0.5 block text-[10px] font-normal text-[#71808a]">{roleLabel(comment.author_id)} · View profile</span></span></button><button title="Report comment" onClick={() => void reportContent("comment", comment.id)} className="text-[#71808a] hover:text-red-600"><ShieldAlert size={14} /></button></div><p className="mt-1 whitespace-pre-wrap break-words text-sm">{comment.body}</p><p className="mt-2 text-[10px] text-[#71808a]">{timeLabel(comment.created_at)}</p></div>)}
                   <form onSubmit={(e) => void submitComment(e, post.id)} className="flex gap-2"><input value={commentDrafts[post.id] || ""} onChange={(e) => setCommentDrafts((current) => ({ ...current, [post.id]: e.target.value.slice(0, 1500) }))} maxLength={1500} placeholder="Write a helpful reply..." className="min-w-0 flex-1 rounded-lg border border-[#102f46]/15 px-3 py-2 text-sm outline-none focus:border-[#087b62]" /><button disabled={!(commentDrafts[post.id] || "").trim() || sending} className="rounded-lg bg-[#087b62] px-3 text-white disabled:opacity-50"><Send size={16} /></button></form>
                 </div>}
               </article>)}</div>}
@@ -234,15 +261,15 @@ export default function CommunityPage() {
             <div className="flex items-center justify-between border-b border-[#102f46]/10 bg-[#e4f5ee] px-5 py-4"><div><h2 className="font-black">SPATDEL Live Room</h2><p className="mt-1 text-xs text-[#71808a]">All signed-in SPATDEL users can join. Messages refresh automatically every 5 seconds.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-[#087b62]"><span className="h-2 w-2 rounded-full bg-[#087b62]" /> All members</span></div>
             <div className="flex h-[55vh] min-h-[340px] flex-col gap-3 overflow-y-auto bg-[#f8f7f2] p-4 sm:p-6">
               {messages.length === 0 ? <p className="m-auto text-center text-sm text-[#71808a]">No messages yet. Start the conversation 👋</p> : messages.map((message) => <div key={message.id} className={`max-w-[85%] rounded-2xl p-3 shadow-sm sm:max-w-[70%] ${message.author_id === userId ? "ml-auto bg-[#087b62] text-white" : "mr-auto bg-white text-[#102f46]"}`}>
-                <button onClick={() => memberLink(message.author_id)} className={`mb-1 block text-xs font-black underline-offset-2 hover:underline ${message.author_id === userId ? "text-[#c9ffe8]" : "text-[#087b62]"}`}>{message.author_id === userId ? "You" : displayName(message.author_id)} <span className="font-normal opacity-70">· {roleLabel(message.author_id)}</span></button>
+                <button onClick={() => memberLink(message.author_id)} className="mb-2 flex items-center gap-2 text-left"><span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e4f5ee] text-xs font-black text-[#087b62]">{profiles[message.author_id]?.avatar_url ? <img src={profiles[message.author_id].avatar_url!} alt="" className="h-full w-full object-cover" /> : displayName(message.author_id).replace(/^@/, "").slice(0, 1).toUpperCase()}</span><span><b className={`block text-xs ${message.author_id === userId ? "text-[#c9ffe8]" : "text-[#087b62]"}`}>{message.author_id === userId ? "You" : displayName(message.author_id)}</b><span className="block text-[10px] opacity-70">{roleLabel(message.author_id)} · View profile</span></span></button>
                 {communityLabel(message.author_id) && <p className="mb-1 text-[10px] font-semibold opacity-75">Community: {communityLabel(message.author_id)}</p>}
                 {message.reply_to_id && <p className="mb-2 rounded-lg bg-black/5 px-2 py-1 text-[10px] opacity-80">↳ Replying to {displayName(messages.find((item) => item.id === message.reply_to_id)?.author_id || "")}: {messages.find((item) => item.id === message.reply_to_id)?.body?.slice(0, 100) || "earlier message"}</p>}
-                <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>
+                {message.property_image_url && <div className="mb-2 overflow-hidden rounded-xl border border-black/10"><img src={message.property_image_url} alt="Property shared for advice" className="max-h-64 w-full object-contain bg-black/5" /></div>}{message.property_type ? <div className="mb-2 rounded-lg bg-black/5 p-2 text-xs"><b>Property inquiry</b><p className="mt-1">Type: {message.property_type}</p>{message.property_location && <p>Location: {message.property_location}</p>}{message.property_budget && <p>Budget: {message.property_budget}</p>}{message.property_question && <p className="mt-1">Question: {message.property_question}</p>}</div> : <p className="whitespace-pre-wrap break-words text-sm">{message.body}</p>}
                 <div className="mt-2 flex items-center justify-between gap-4 text-[10px] opacity-65"><span className="inline-flex items-center gap-1"><Clock3 size={11} />{timeLabel(message.created_at)}</span><span className="flex items-center gap-3"><button onClick={() => setReplyTo(message)} title="Reply to message" className="inline-flex items-center gap-1 font-bold"><MessageCircle size={13} /> Reply</button><button onClick={() => void reportContent("message", message.id)} title="Report message"><ShieldAlert size={13} /></button></span></div>
               </div>)}
             </div>
             {replyTo && <div className="flex items-center justify-between gap-3 border-t border-[#102f46]/10 bg-[#e4f5ee] px-4 py-2 text-xs"><span>Replying to <b>{displayName(replyTo.author_id)}</b>: {replyTo.body.slice(0, 90)}</span><button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply"><X size={16} /></button></div>}
-            <form onSubmit={submitChat} className="flex gap-2 border-t border-[#102f46]/10 p-3 sm:p-4"><input value={chatDraft} onChange={(e) => setChatDraft(e.target.value.slice(0, 1000))} maxLength={1000} placeholder={replyTo ? "Write your reply..." : "Send a message to the community..."} className="min-w-0 flex-1 rounded-xl border border-[#102f46]/15 px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><button disabled={!chatDraft.trim() || sending} aria-label="Send community message" className="flex items-center justify-center rounded-xl bg-[#087b62] px-5 text-white disabled:opacity-50"><Send size={18} /></button></form>
+            <>{currentRole === "tenant" && <div className="border-t border-[#102f46]/10 px-3 pt-3 sm:px-4"><button type="button" onClick={() => setShowPropertyInquiry((value) => !value)} className="inline-flex items-center gap-2 rounded-lg border border-[#087b62]/30 px-3 py-2 text-sm font-bold text-[#087b62]"><ImagePlus size={17} /> {showPropertyInquiry ? "Close property question" : "Upload a property to ask about it"}</button>{showPropertyInquiry && <form onSubmit={submitPropertyInquiry} className="mt-3 grid gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 sm:grid-cols-2"><div className="sm:col-span-2"><p className="font-black">Ask the community about a property</p><p className="mt-1 text-xs text-[#71808a]">Tenant accounts only. This is a question, not a property listing.</p></div><label className="text-xs font-bold">Property photo<input ref={propertyInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-sm" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; if (!["image/jpeg","image/png","image/webp"].includes(file.type)) { setError("Choose a JPG, PNG, or WebP image."); e.target.value = ""; return; } if (file.size > 5 * 1024 * 1024) { setError("Choose an image under 5 MB."); e.target.value = ""; return; } setPropertyImage(file); setPropertyPreview(URL.createObjectURL(file)); setError(""); }} /></label><label className="text-xs font-bold">Property type<select value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="mt-1 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2 text-sm"><option>Apartment</option><option>House</option><option>Room</option><option>Land</option><option>Commercial</option><option>Other</option></select></label>{propertyPreview && <img src={propertyPreview} alt="Property inquiry preview" className="max-h-48 w-full rounded-lg bg-white object-contain sm:col-span-2" />}<label className="text-xs font-bold">Area / location<input required value={propertyLocation} onChange={(e) => setPropertyLocation(e.target.value.slice(0, 180))} maxLength={180} placeholder="Town, city, region, country" className="mt-1 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2 text-sm" /></label><label className="text-xs font-bold">Budget (optional)<input value={propertyBudget} onChange={(e) => setPropertyBudget(e.target.value.slice(0, 100))} maxLength={100} placeholder="Currency and amount" className="mt-1 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2 text-sm" /></label><label className="text-xs font-bold sm:col-span-2">What do you want to know?<textarea required value={propertyQuestion} onChange={(e) => setPropertyQuestion(e.target.value.slice(0, 800))} maxLength={800} rows={3} placeholder="Ask about price, safety, transport, condition, or the area..." className="mt-1 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2 text-sm" /></label><button disabled={sending || !propertyImage || !propertyLocation.trim() || !propertyQuestion.trim()} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#087b62] px-4 py-3 text-sm font-bold text-white disabled:opacity-50 sm:col-span-2"><Send size={16} /> {sending ? "Uploading..." : "Post property question"}</button></form>}</div>}<form onSubmit={submitChat} className="flex gap-2 border-t border-[#102f46]/10 p-3 sm:p-4"><input value={chatDraft} onChange={(e) => setChatDraft(e.target.value.slice(0, 1000))} maxLength={1000} placeholder={replyTo ? "Write your reply..." : "Send a message to the community..."} className="min-w-0 flex-1 rounded-xl border border-[#102f46]/15 px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><button disabled={!chatDraft.trim() || sending} aria-label="Send community message" className="flex items-center justify-center rounded-xl bg-[#087b62] px-5 text-white disabled:opacity-50"><Send size={18} /></button></form></>
           </section>
         )}
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-[#102f46]/10 bg-white p-4 text-xs leading-5 text-[#71808a]"><ShieldAlert className="mt-0.5 shrink-0 text-[#087b62]" size={18} /><p>Keep your exact home address, passwords, bank details, and private contact information out of public discussions. Report abusive or suspicious content. Reports are stored for moderation; an admin review dashboard still needs to be connected.</p></div>

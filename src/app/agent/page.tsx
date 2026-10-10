@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type Role = "tenant" | "agent" | "landlord" | "admin";
+type Role = "tenant" | "agent" | "landlord" | "chairman" | "admin";
 type Profile = { id: string; full_name: string | null; role: Role };
 type Listing = {
   id: string;
@@ -109,6 +109,11 @@ export default function AgentDashboard() {
       if (profileError || !data) {
         setError("We could not load your SPATDEL profile.");
         setLoading(false);
+        return;
+      }
+
+      if (data.role === "chairman") {
+        router.replace("/chairman");
         return;
       }
 

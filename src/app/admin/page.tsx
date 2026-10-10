@@ -52,6 +52,7 @@ type CommunityOption = {
   id: string;
   name: string;
   state: string | null;
+  country: string | null;
   local_government: string | null;
   status: "active" | "inactive" | "pending";
 };
@@ -106,6 +107,7 @@ export default function AdminDashboard() {
   const [loadingChairmanApplications, setLoadingChairmanApplications] = useState(false);
   const [reviewingApplicationId, setReviewingApplicationId] = useState<string | null>(null);
   const [newCommunityName, setNewCommunityName] = useState("");
+  const [newCommunityCountry, setNewCommunityCountry] = useState("");
   const [newCommunityState, setNewCommunityState] = useState("");
   const [newCommunityLga, setNewCommunityLga] = useState("");
   const [creatingCommunity, setCreatingCommunity] = useState(false);
@@ -266,7 +268,7 @@ export default function AdminDashboard() {
         .order("created_at", { ascending: false }),
       supabase
         .from("communities")
-        .select("id, name, state, local_government, status")
+        .select("id, name, country, state, local_government, status")
         .order("name", { ascending: true }),
     ]);
 
@@ -451,10 +453,11 @@ export default function AdminDashboard() {
 
   async function createCommunity() {
     const name = newCommunityName.trim();
+    const country = newCommunityCountry.trim();
     const state = newCommunityState.trim();
     const localGovernment = newCommunityLga.trim();
-    if (!name || !state || !localGovernment) {
-      setError("Enter the community name, state, and local government area.");
+    if (!name || !country || !state || !localGovernment) {
+      setError("Enter the country, region/state, administrative area, and community name.");
       return;
     }
 
@@ -466,12 +469,13 @@ export default function AdminDashboard() {
       .from("communities")
       .insert({
         name,
+        country,
         state,
         local_government: localGovernment,
         status: "active",
         created_by: user?.id ?? null,
       })
-      .select("id, name, state, local_government, status")
+      .select("id, name, country, state, local_government, status")
       .single();
 
     if (createError || !data) {
@@ -482,6 +486,7 @@ export default function AdminDashboard() {
 
     setCommunities((current) => [...current, data as CommunityOption].sort((a, b) => a.name.localeCompare(b.name)));
     setNewCommunityName("");
+    setNewCommunityCountry("");
     setNewCommunityState("");
     setNewCommunityLga("");
     setSuccess("Community created successfully.");
@@ -891,9 +896,10 @@ export default function AdminDashboard() {
               <h3 className="font-black">Create a community</h3>
               <p className="mt-1 text-xs leading-5 text-[#71808a]">Create the community first so an approved chairman can be assigned to it.</p>
               <div className="mt-4 space-y-3">
-                <input value={newCommunityName} onChange={(event) => setNewCommunityName(event.target.value)} placeholder="Community name" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
-                <input value={newCommunityState} onChange={(event) => setNewCommunityState(event.target.value)} placeholder="State" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
-                <input value={newCommunityLga} onChange={(event) => setNewCommunityLga(event.target.value)} placeholder="Local government area" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input value={newCommunityCountry} onChange={(event) => setNewCommunityCountry(event.target.value)} placeholder="Country (e.g. Nigeria, Ghana, UK)" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input value={newCommunityState} onChange={(event) => setNewCommunityState(event.target.value)} placeholder="State / province / region" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input value={newCommunityLga} onChange={(event) => setNewCommunityLga(event.target.value)} placeholder="District / county / LGA" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input value={newCommunityName} onChange={(event) => setNewCommunityName(event.target.value)} placeholder="Community / estate / neighbourhood" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
                 <button type="submit" disabled={creatingCommunity} className="w-full rounded-lg bg-[#102f46] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#174763] disabled:opacity-50">
                   {creatingCommunity ? "Creating..." : "Create community"}
                 </button>
@@ -901,7 +907,7 @@ export default function AdminDashboard() {
               <div className="mt-4 border-t border-[#102f46]/10 pt-3">
                 <p className="text-xs font-bold text-[#102f46]">{communities.length} communities available</p>
                 {communities.slice(0, 5).map((community) => (
-                  <p key={community.id} className="mt-2 text-xs text-[#71808a]">{community.name} · {community.local_government || "LGA not set"}, {community.state || "State not set"}</p>
+                  <p key={community.id} className="mt-2 text-xs text-[#71808a]">{community.name} · {community.local_government || "Area not set"}, {community.state || "Region not set"}, {community.country || "Country not set"}</p>
                 ))}
               </div>
             </form>
@@ -939,7 +945,7 @@ export default function AdminDashboard() {
                         <select value={selectedCommunityByApplication[application.id] || ""} onChange={(event) => setSelectedCommunityByApplication((current) => ({ ...current, [application.id]: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm font-medium text-[#102f46] outline-none focus:border-[#087b62]">
                           <option value="">Select a community</option>
                           {communities.filter((community) => community.status === "active").map((community) => (
-                            <option key={community.id} value={community.id}>{community.name} · {community.local_government || ""}{community.state ? `, ${community.state}` : ""}</option>
+                            <option key={community.id} value={community.id}>{community.name} · {community.local_government || ""}{community.state ? `, ${community.state}` : ""}{community.country ? `, ${community.country}` : ""}</option>
                           ))}
                         </select>
                       </label>

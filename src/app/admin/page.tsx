@@ -484,6 +484,15 @@ export default function AdminDashboard() {
     }, 3000);
   }
 
+  function useChairmanApplicationLocation(application: ChairmanApplication) {
+    setNewCommunityName(application.community_name);
+    setNewCommunityCountry(application.country);
+    setNewCommunityState(application.state);
+    setNewCommunityLga(application.local_government);
+    setError("");
+    setSuccess("Chairman location copied into the community form. Review it, then create the community.");
+  }
+
   async function createCommunity() {
     const name = newCommunityName.trim();
     const country = newCommunityCountry.trim();

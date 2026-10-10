@@ -9,7 +9,6 @@ import {
   LoaderCircle,
   MapPin,
   MessageCircle,
-  Phone,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +27,7 @@ type Property = {
 
 function roleLabel(role: Role) {
   if (role === "admin") return "Admin";
+  if (role === "chairman") return "Community Chairman";
   if (role === "agent") return "Agent";
   if (role === "landlord") return "Landlord";
   if (role === "tenant") return "Tenant";
@@ -43,6 +43,20 @@ function PublicProfileContent() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  function goBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    const requested = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("returnTo")
+      : null;
+    const safePath = requested && requested.startsWith("/") && !requested.startsWith("//")
+      ? requested
+      : "/";
+    router.push(safePath);
+  }
 
   useEffect(() => {
     let active = true;
@@ -126,7 +140,7 @@ function PublicProfileContent() {
             <img src="/spatdel.png" alt="SPATDEL" className="h-10 w-auto object-contain" />
             <span className="font-bold">SPATDEL Profile</span>
           </button>
-          <button onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/"); }} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]">
+          <button onClick={goBack} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]">
             <ArrowLeft size={16} /> Back
           </button>
         </div>
@@ -153,6 +167,9 @@ function PublicProfileContent() {
                     </h1>
                   </div>
                   {profile.username && <p className="mt-1 text-sm font-semibold text-[#687987]">@{profile.username}</p>}
+                  {profile.role === "chairman" && <p className="mt-2 text-sm font-semibold text-[#087b62]">Community leadership on SPATDEL</p>}
+                  {profile.role === "agent" && <p className="mt-2 text-sm font-semibold text-[#087b62]">Property professional on SPATDEL</p>}
+                  {profile.role === "landlord" && <p className="mt-2 text-sm font-semibold text-[#087b62]">Property owner on SPATDEL</p>}
                   <span className="mt-3 inline-flex rounded-full bg-[#e8f4ed] px-3 py-1.5 text-sm font-bold text-[#087b62]">
                     {roleLabel(profile.role)}
                   </span>
@@ -164,7 +181,7 @@ function PublicProfileContent() {
                   {currentUserId === profile.id ? (
                     <button onClick={() => router.push("/profile/edit")} className="rounded-full border border-[#d5dde2] px-5 py-3 text-sm font-bold hover:bg-[#f5f7f8]">Edit profile</button>
                   ) : (
-                    <button onClick={() => router.push(`/messages?user=${profile.id}`)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#066b55]">
+                    <button onClick={() => router.push(`/messages?user=${encodeURIComponent(profile.id)}`)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#066b55]">
                       <MessageCircle size={17} /> Message
                     </button>
                   )}

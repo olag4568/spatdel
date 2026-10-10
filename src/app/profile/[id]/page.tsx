@@ -218,12 +218,7 @@ function PublicProfileContent() {
                     <dt className="flex items-center gap-1.5 text-[#687987]"><MapPin size={15} /> Location</dt>
                     <dd className="max-w-[60%] text-right font-bold">{profile.location?.trim() || "Not added"}</dd>
                   </div>
-                  {profile.contact_phone?.trim() && (
-                    <div className="flex items-start justify-between gap-4">
-                      <dt className="flex items-center gap-1.5 text-[#687987]"><Phone size={15} /> Contact</dt>
-                      <dd className="text-right font-bold"><a className="text-[#087b62] underline" href={"tel:" + profile.contact_phone}>{profile.contact_phone}</a></dd>
-                    </div>
-                  )}
+                  <div className="mt-4 rounded-xl bg-[#f8f7f2] p-3 text-xs leading-5 text-[#687987]">For privacy, personal phone numbers are not shown on public profiles. Use SPATDEL messaging to contact this member.</div>
                 </dl>
                 {currentUserId !== profile.id && (
                   <button

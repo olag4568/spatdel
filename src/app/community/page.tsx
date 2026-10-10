@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Check, CheckCheck, Clock3, ImagePlus, LoaderCircle, MessageCircle, MessagesSquare, Send, ShieldAlert, Smile, Users, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, CheckCheck, Clock3, ImagePlus, LoaderCircle, MessageCircle, MessagesSquare, Send, ShieldAlert, Smile, Users, X } from "lucide-react";
 
 type Profile = { id: string; full_name?: string | null; username?: string | null; role?: string | null; avatar_url?: string | null; community_label?: string | null };
 type Post = { id: string; author_id: string; body: string; image_url?: string | null; created_at: string };
@@ -300,6 +300,7 @@ export default function CommunityPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={() => setTab("posts")} className={`rounded-lg px-4 py-3 text-sm font-bold ${tab === "posts" ? "bg-[#19e58f] text-[#071b18]" : "bg-white/10 text-white"}`}><MessagesSquare className="mr-2 inline" size={17} /> Community posts</button>
             <button onClick={() => setTab("chat")} className={`rounded-lg px-4 py-3 text-sm font-bold ${tab === "chat" ? "bg-[#19e58f] text-[#071b18]" : "bg-white/10 text-white"}`}><MessageCircle className="mr-2 inline" size={17} /> Live community chat</button>
+            <button onClick={() => router.push("/community/activities")} className="rounded-lg bg-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/20"><CalendarDays className="mr-2 inline" size={17} /> Events & polls</button>
           </div>
         </div>
 

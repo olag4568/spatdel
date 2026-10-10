@@ -11,12 +11,14 @@ create table if not exists public.community_join_requests (
   reviewed_by uuid references public.profiles(id) on delete set null,
   reviewed_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (community_id, requester_id)
+  updated_at timestamptz not null default now()
 );
 
 create index if not exists community_join_requests_review_idx
   on public.community_join_requests (community_id, status, created_at);
+create unique index if not exists community_join_requests_one_pending_idx
+  on public.community_join_requests (community_id, requester_id)
+  where status = 'pending';
 
 alter table public.community_join_requests enable row level security;
 

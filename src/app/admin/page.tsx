@@ -48,6 +48,8 @@ type ChairmanApplication = {
   applicant_email?: string;
 };
 
+const SPATDEL_COUNTRIES = ["Argentina","Australia","Austria","Bangladesh","Belgium","Botswana","Brazil","Cameroon","Canada","China","Colombia","Denmark","Egypt","Ethiopia","Finland","France","Germany","Ghana","India","Indonesia","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Norway","Pakistan","Philippines","Poland","Portugal","Rwanda","Saudi Arabia","Senegal","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland","Tanzania","Thailand","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Vietnam","Zambia","Zimbabwe"];
+
 type CommunityOption = {
   id: string;
   name: string;
@@ -108,6 +110,26 @@ export default function AdminDashboard() {
   const [reviewingApplicationId, setReviewingApplicationId] = useState<string | null>(null);
   const [newCommunityName, setNewCommunityName] = useState("");
   const [newCommunityCountry, setNewCommunityCountry] = useState("");
+  const [newCommunityRegions, setNewCommunityRegions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const country = newCommunityCountry.trim();
+    if (!country) { setNewCommunityRegions([]); return; }
+    const controller = new AbortController();
+    fetch("https://countriesnow.space/api/v0.1/countries/states", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country }),
+      signal: controller.signal,
+    })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => {
+        const states = result?.data?.states;
+        setNewCommunityRegions(Array.isArray(states) ? states.map((item: { name?: string }) => item.name).filter((name: unknown): name is string => typeof name === "string") : []);
+      })
+      .catch(() => { if (!controller.signal.aborted) setNewCommunityRegions([]); });
+    return () => controller.abort();
+  }, [newCommunityCountry]);
   const [newCommunityState, setNewCommunityState] = useState("");
   const [newCommunityLga, setNewCommunityLga] = useState("");
   const [creatingCommunity, setCreatingCommunity] = useState(false);
@@ -896,8 +918,8 @@ export default function AdminDashboard() {
               <h3 className="font-black">Create a community</h3>
               <p className="mt-1 text-xs leading-5 text-[#71808a]">Create the community first so an approved chairman can be assigned to it.</p>
               <div className="mt-4 space-y-3">
-                <input value={newCommunityCountry} onChange={(event) => setNewCommunityCountry(event.target.value)} placeholder="Country (e.g. Nigeria, Ghana, UK)" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
-                <input value={newCommunityState} onChange={(event) => setNewCommunityState(event.target.value)} placeholder="State / province / region" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
+                <input list="spatdel-admin-countries" value={newCommunityCountry} onChange={(event) => setNewCommunityCountry(event.target.value)} placeholder="Search or enter any country" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" /><datalist id="spatdel-admin-countries">{SPATDEL_COUNTRIES.map((country) => <option key={country} value={country} />)}</datalist>
+                <input list="spatdel-admin-regions" value={newCommunityState} onChange={(event) => setNewCommunityState(event.target.value)} placeholder="Search or enter state / region" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" /><datalist id="spatdel-admin-regions">{newCommunityRegions.map((region) => <option key={region} value={region} />)}</datalist>
                 <input value={newCommunityLga} onChange={(event) => setNewCommunityLga(event.target.value)} placeholder="District / county / LGA" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
                 <input value={newCommunityName} onChange={(event) => setNewCommunityName(event.target.value)} placeholder="Community / estate / neighbourhood" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#087b62]" />
                 <button type="submit" disabled={creatingCommunity} className="w-full rounded-lg bg-[#102f46] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#174763] disabled:opacity-50">

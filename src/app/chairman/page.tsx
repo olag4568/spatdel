@@ -185,6 +185,7 @@ export default function ChairmanDashboard() {
           </button>
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block"><p className="text-sm font-semibold">{profile?.full_name || "Chairman"}</p><p className="text-xs text-slate-500">Community chairman</p></div>
+            <button onClick={() => router.push("/community")} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Community chat</span></button>
             <button onClick={signOut} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50"><LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign out</span></button>
           </div>
         </div>
@@ -212,10 +213,13 @@ export default function ChairmanDashboard() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <div className="flex items-start gap-3">
-            <FileText className="mt-0.5 h-5 w-5 shrink-0 text-amber-800" />
-            <div><h2 className="font-semibold text-amber-950">Community setup needed</h2><p className="mt-1 text-sm leading-6 text-amber-900">This is the first dashboard layout. Resident lists, announcements, complaints, meetings and community-specific permissions will become live after we add their database tables and link each chairman account to its own community.</p></div>
+        <section className="mt-8 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <MessageSquare className="mt-0.5 h-5 w-5 shrink-0 text-emerald-800" />
+              <div><h2 className="font-semibold text-emerald-950">Community Pulse</h2><p className="mt-1 text-sm leading-6 text-emerald-900">Open community discussions and the live room to communicate with SPATDEL members. Your access still depends on your account and the database permissions.</p></div>
+            </div>
+            <button onClick={() => router.push("/community")} className="rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Open community chat</button>
           </div>
         </section>
 

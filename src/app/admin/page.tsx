@@ -50,6 +50,17 @@ type ChairmanApplication = {
 
 const SPATDEL_COUNTRIES = ["Argentina","Australia","Austria","Bangladesh","Belgium","Botswana","Brazil","Cameroon","Canada","China","Colombia","Denmark","Egypt","Ethiopia","Finland","France","Germany","Ghana","India","Indonesia","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Norway","Pakistan","Philippines","Poland","Portugal","Rwanda","Saudi Arabia","Senegal","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland","Tanzania","Thailand","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Vietnam","Zambia","Zimbabwe"];
 
+function normalizeCommunityLocation(value: string | null | undefined) {
+  return (value || "").trim().toLocaleLowerCase();
+}
+
+function communityMatchesApplication(community: CommunityOption, application: ChairmanApplication) {
+  return community.status === "active" &&
+    normalizeCommunityLocation(community.country) === normalizeCommunityLocation(application.country) &&
+    normalizeCommunityLocation(community.state) === normalizeCommunityLocation(application.state) &&
+    normalizeCommunityLocation(community.local_government) === normalizeCommunityLocation(application.local_government);
+}
+
 type CommunityOption = {
   id: string;
   name: string;
@@ -521,6 +532,13 @@ export default function AdminDashboard() {
       setError("Choose a community before approving and assigning this chairman.");
       return;
     }
+    if (decision === "approved") {
+      const selectedCommunity = communities.find((community) => community.id === communityId);
+      if (!selectedCommunity || !communityMatchesApplication(selectedCommunity, application)) {
+        setError("Choose an active community in the applicant's same country, region/state, and district/county/LGA.");
+        return;
+      }
+    }
 
     setError("");
     setSuccess("");
@@ -966,13 +984,16 @@ export default function AdminDashboard() {
                         Assign community
                         <select value={selectedCommunityByApplication[application.id] || ""} onChange={(event) => setSelectedCommunityByApplication((current) => ({ ...current, [application.id]: event.target.value }))} className="mt-1.5 w-full rounded-lg border border-[#102f46]/15 bg-white px-3 py-2.5 text-sm font-medium text-[#102f46] outline-none focus:border-[#087b62]">
                           <option value="">Select a community</option>
-                          {communities.filter((community) => community.status === "active").map((community) => (
+                          {communities.filter((community) => communityMatchesApplication(community, application)).map((community) => (
                             <option key={community.id} value={community.id}>{community.name} · {community.local_government || ""}{community.state ? `, ${community.state}` : ""}{community.country ? `, ${community.country}` : ""}</option>
                           ))}
                         </select>
                       </label>
+                      {communities.filter((community) => communityMatchesApplication(community, application)).length === 0 && (
+                        <p className="text-xs leading-5 text-amber-700">No active community matches this applicant's location yet. Create the community above using the same country, region/state, and district/county/LGA, then refresh applications.</p>
+                      )}
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => void reviewChairmanApplication(application, "approved")} disabled={reviewingApplicationId === application.id || communities.filter((community) => community.status === "active").length === 0} className="rounded-lg bg-[#087b62] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#06644f] disabled:opacity-50">
+                        <button type="button" onClick={() => void reviewChairmanApplication(application, "approved")} disabled={reviewingApplicationId === application.id || communities.filter((community) => communityMatchesApplication(community, application)).length === 0} className="rounded-lg bg-[#087b62] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#06644f] disabled:opacity-50">
                           {reviewingApplicationId === application.id ? "Saving..." : "Approve & assign"}
                         </button>
                         <button type="button" onClick={() => void reviewChairmanApplication(application, "rejected")} disabled={reviewingApplicationId === application.id} className="rounded-lg border border-red-200 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50">

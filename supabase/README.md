@@ -60,4 +60,6 @@ The community directory is available at `/communities`. Signed-in members can se
 
 Before using the directory, run `migrations/20261028000000_community_membership_requests.sql` in Supabase SQL Editor after the earlier community migrations. This migration adds request status, row-level security, and a protected review function. Do not expose a Supabase service-role key in the browser.
 
-The directory and existing Community Pulse are separate: Community Pulse currently uses its existing shared feed/chat tables, while this directory manages official community records and membership. Community-specific feed isolation should be implemented as a follow-up before treating the shared Community Pulse as a private room for each official community.
+Members with active membership can open their own community space at `/communities/[id]`. Each space has a community-scoped chat, published announcements, scheduled meetings, and a private complaint form. The new `community_chat_messages` table is protected by RLS so only active members, assigned chairmen, and admins can read or send messages in that community. Existing Community Pulse (`/community`) remains a separate shared feed/chat and is not the private chat for any one official community.
+
+Before using community spaces, run `migrations/20261029000000_community_spaces.sql` in Supabase SQL Editor after `20261028000000_community_membership_requests.sql`. The site has not yet been built or tested against the live Supabase database, so verify the migration and role permissions in a test account before launch.

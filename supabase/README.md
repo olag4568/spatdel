@@ -52,3 +52,12 @@ Run `supabase/migrations/20261013000000_public_member_profiles.sql` in Supabase 
 After the existing chat directory and public profile migrations, run `supabase/migrations/20261014000000_member_profiles.sql` in Supabase SQL Editor. It adds unique usernames, profile photo URLs, bios, a public `profile-photos` storage bucket with per-user upload permissions, and secure RPCs for editing and reading public profile fields. Members can edit these details at `/profile/edit` or from Account Settings. The profile editor accepts JPG, PNG, and WebP images up to 3 MB.
 
 The update RPC only permits changes to a member's display name, username, bio, and photo URL; it does not allow a user to change their account role. The migration refreshes the member directory and public-profile RPCs so the new public fields can be shown in search and messaging.
+
+
+## Community directory and membership requests
+
+The community directory is available at `/communities`. Signed-in members can search active communities and submit a membership request. Admins can review requests across active communities; a chairman can review requests only for communities assigned to them. Approvals create or reactivate a membership through a database function.
+
+Before using the directory, run `migrations/20261028000000_community_membership_requests.sql` in Supabase SQL Editor after the earlier community migrations. This migration adds request status, row-level security, and a protected review function. Do not expose a Supabase service-role key in the browser.
+
+The directory and existing Community Pulse are separate: Community Pulse currently uses its existing shared feed/chat tables, while this directory manages official community records and membership. Community-specific feed isolation should be implemented as a follow-up before treating the shared Community Pulse as a private room for each official community.

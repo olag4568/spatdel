@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -17,6 +17,8 @@ import { createClient } from "@/lib/supabase/client";
 
 type UserRole = "tenant" | "agent" | "landlord" | "chairman";
 
+const SPATDEL_COUNTRIES = ["Argentina","Australia","Austria","Bangladesh","Belgium","Botswana","Brazil","Cameroon","Canada","China","Colombia","Denmark","Egypt","Ethiopia","Finland","France","Germany","Ghana","India","Indonesia","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Norway","Pakistan","Philippines","Poland","Portugal","Rwanda","Saudi Arabia","Senegal","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland","Tanzania","Thailand","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Vietnam","Zambia","Zimbabwe"];
+
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -27,6 +29,26 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [communityName, setCommunityName] = useState("");
   const [communityCountry, setCommunityCountry] = useState("");
+  const [communityRegions, setCommunityRegions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const country = communityCountry.trim();
+    if (!country) { setCommunityRegions([]); return; }
+    const controller = new AbortController();
+    fetch("https://countriesnow.space/api/v0.1/countries/states", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ country }),
+      signal: controller.signal,
+    })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => {
+        const states = result?.data?.states;
+        setCommunityRegions(Array.isArray(states) ? states.map((item: { name?: string }) => item.name).filter((name: unknown): name is string => typeof name === "string") : []);
+      })
+      .catch(() => { if (!controller.signal.aborted) setCommunityRegions([]); });
+    return () => controller.abort();
+  }, [communityCountry]);
   const [communityState, setCommunityState] = useState("");
   const [localGovernment, setLocalGovernment] = useState("");
   const [applicationReason, setApplicationReason] = useState("");
@@ -362,11 +384,11 @@ export default function SignupPage() {
                     </div>
                     <div>
                       <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Country</label>
-                      <input value={communityCountry} onChange={(e) => setCommunityCountry(e.target.value)} placeholder="e.g. Nigeria, Ghana, United Kingdom" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                      <input list="spatdel-countries" value={communityCountry} onChange={(e) => setCommunityCountry(e.target.value)} placeholder="Search or enter any country" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><datalist id="spatdel-countries">{SPATDEL_COUNTRIES.map((country) => <option key={country} value={country} />)}</datalist>
                     </div>
                     <div>
                       <label className="mb-2 block text-xs font-bold uppercase tracking-wide">State / province / region</label>
-                      <input value={communityState} onChange={(e) => setCommunityState(e.target.value)} placeholder="e.g. Lagos" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
+                      <input list="spatdel-regions" value={communityState} onChange={(e) => setCommunityState(e.target.value)} placeholder="Search or enter state / region" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><datalist id="spatdel-regions">{communityRegions.map((region) => <option key={region} value={region} />)}</datalist>
                     </div>
                     <div>
                       <label className="mb-2 block text-xs font-bold uppercase tracking-wide">District / county / local government area</label>

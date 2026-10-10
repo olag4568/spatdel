@@ -18,6 +18,7 @@ import {
   MessageSquare,
   LayoutDashboard,
   Send,
+  Users,
 } from "lucide-react";
 
 type Property = {

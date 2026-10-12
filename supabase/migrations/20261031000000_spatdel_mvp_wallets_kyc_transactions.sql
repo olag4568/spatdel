@@ -213,6 +213,19 @@ create policy "Users can submit their own KYC request"
   on public.spatdel_kyc_profiles for insert to authenticated
   with check (user_id = auth.uid() and status = 'pending' and reviewed_by is null and verified_at is null);
 
+-- The profile row is pre-created with the wallet, so users submit KYC by changing
+-- only the status to pending; they can never self-verify or set reviewer fields.
+drop policy if exists "Users can request KYC review" on public.spatdel_kyc_profiles;
+create policy "Users can request KYC review"
+  on public.spatdel_kyc_profiles for update to authenticated
+  using (user_id = auth.uid())
+  with check (
+    user_id = auth.uid()
+    and status in ('pending', 'needs_review')
+    and reviewed_by is null
+    and verified_at is null
+  );
+
 drop policy if exists "Users and admins can view payout accounts" on public.spatdel_payout_accounts;
 create policy "Users and admins can view payout accounts"
   on public.spatdel_payout_accounts for select to authenticated
@@ -245,6 +258,15 @@ create policy "Buyers can create their own transaction requests"
     and funds_held_at is null
     and released_at is null
     and completed_at is null
+    and exists (
+      select 1
+      from public.properties p
+      where p.id = property_id
+        and p.verified = true
+        and coalesce(p.owner_id, p.submitted_by) = seller_id
+        and coalesce(p.listing_purpose, 'rent') = purpose
+        and lower(coalesce(p.location, '')) like '%ijegun%'
+    )
   );
 
 drop policy if exists "Users can view their own ledger entries and admins can review all" on public.spatdel_wallet_ledger;

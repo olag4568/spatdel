@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  // Paystack is optional during development. Report its setup state without
+  // treating an intentionally unconfigured provider as a page-breaking error.
   if (!secretKey) {
-    return NextResponse.json({ error: "Paystack is not configured yet." }, { status: 503 });
+    return NextResponse.json(
+      { configured: false, banks: [] },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   }
 
   try {
@@ -36,7 +41,10 @@ export async function GET() {
       }
     }
     const banks = [...uniqueBanks.values()].sort((a, b) => a.name.localeCompare(b.name));
-    return NextResponse.json({ banks }, { headers: { "Cache-Control": "private, max-age=300" } });
+    return NextResponse.json(
+      { configured: true, banks },
+      { headers: { "Cache-Control": "private, max-age=300" } }
+    );
   } catch (error) {
     console.error("Paystack bank list request failed:", error);
     return NextResponse.json({ error: "Could not load banks right now." }, { status: 502 });

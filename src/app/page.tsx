@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Check,
   Heart,
+  Home as HomeIcon,
   MapPin,
   Menu,
   ShieldCheck,

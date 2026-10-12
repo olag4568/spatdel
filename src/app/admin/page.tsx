@@ -21,6 +21,7 @@ import {
   Bath,
   Ruler,
   Trash2,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -801,6 +802,13 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/wallet")}
+              className="flex items-center gap-2 rounded-lg border border-[#102f46]/10 bg-white px-3 py-2 text-sm font-bold transition hover:border-[#087b62]/40 hover:text-[#087b62]"
+            >
+              <Wallet size={17} />
+              <span className="hidden sm:inline">Wallet & Transactions</span>
+            </button>
             <div className="hidden text-right sm:block">
               <p className="text-sm font-bold">
                 {profile.full_name || "Admin"}

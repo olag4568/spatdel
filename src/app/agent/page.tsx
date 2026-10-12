@@ -15,6 +15,7 @@ import {
   Trash2,
   X,
   Upload,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -421,6 +422,7 @@ export default function AgentDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => router.push("/wallet")} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]"><Wallet size={16} /> Wallet</button>
             <button onClick={() => router.push("/messages")} className="inline-flex items-center gap-2 rounded-full bg-[#087b62] px-4 py-2 text-sm font-semibold text-white hover:bg-[#066851]"><MessageCircle size={16} /> Main Messages</button>
             <button onClick={() => router.push("/")} className="inline-flex items-center gap-2 rounded-full border border-[#d5dde2] px-4 py-2 text-sm font-semibold hover:bg-[#f5f7f8]">
             <ArrowLeft size={16} /> Home

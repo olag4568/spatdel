@@ -11,12 +11,12 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select exists (
     select 1 from public.profiles p
     where p.id = auth.uid() and p.role = 'admin'
   );
-$;
+$$;
 
 revoke all on function public.spatdel_is_admin() from public, anon;
 grant execute on function public.spatdel_is_admin() to authenticated;

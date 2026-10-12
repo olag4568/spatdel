@@ -231,7 +231,7 @@ export default function WalletPage() {
   }, []);
 
   async function savePayoutAccount() {
-    if (!paystackConfigured || !payoutBankCode || !/^\\d{10}$/.test(payoutAccountNumber)) {
+    if (!paystackConfigured || !payoutBankCode || !/^\d{10}$/.test(payoutAccountNumber)) {
       setError("Choose a bank and enter a valid 10-digit account number.");
       return;
     }
@@ -410,7 +410,7 @@ export default function WalletPage() {
                   </label>
                   <label className="block text-sm font-semibold">
                     Account number
-                    <input value={payoutAccountNumber} onChange={(event) => setPayoutAccountNumber(event.target.value.replace(/\\D/g, "").slice(0, 10))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    <input value={payoutAccountNumber} onChange={(event) => setPayoutAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                   </label>
                   <button type="submit" disabled={savingPayoutAccount || loadingBanks || banks.length === 0 || payoutAccountNumber.length !== 10 || !payoutBankCode} className="self-end rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
                     {savingPayoutAccount ? "Saving…" : "Add bank"}

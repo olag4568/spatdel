@@ -4,9 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
-  ArrowDownToLine,
   ArrowLeft,
-  ArrowUpFromLine,
   BadgeCheck,
   Clock3,
   RefreshCw,

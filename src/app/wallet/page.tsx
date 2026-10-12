@@ -49,8 +49,12 @@ type TransactionRow = {
 
 type KycRow = {
   status: "not_started" | "pending" | "verified" | "rejected" | "needs_review";
+  provider: string | null;
+  provider_reference: string | null;
   updated_at: string;
 };
+
+type BankOption = { name: string; code: string };
 
 const supabase = createClient();
 const naira = (kobo: number) =>
@@ -70,6 +74,13 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submittingKyc, setSubmittingKyc] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [bankCode, setBankCode] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [bvn, setBvn] = useState("");
+  const [banks, setBanks] = useState<BankOption[]>([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [userId, setUserId] = useState("");
@@ -114,7 +125,7 @@ export default function WalletPage() {
           walletQuery,
           supabase
             .from("spatdel_kyc_profiles")
-            .select("status,updated_at")
+            .select("status,provider,provider_reference,updated_at")
             .eq("user_id", user.id)
             .maybeSingle(),
           supabase
@@ -159,6 +170,26 @@ export default function WalletPage() {
     void loadWallet();
   }, [loadWallet]);
 
+  useEffect(() => {
+    let active = true;
+    setLoadingBanks(true);
+    fetch("/api/kyc/paystack/banks", { cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.error || "Could not load banks.");
+        if (active) setBanks(Array.isArray(result.banks) ? result.banks : []);
+      })
+      .catch((caught) => {
+        console.error("Could not load Paystack banks:", caught);
+      })
+      .finally(() => {
+        if (active) setLoadingBanks(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const balances = useMemo(() => {
     const result = new Map<string, number>();
     for (const entry of ledger) {
@@ -173,29 +204,34 @@ export default function WalletPage() {
 
   const ownWallet = wallets.find((wallet) => wallet.user_id === userId);
 
-  async function requestKycReview() {
-    if (!userId || !kyc || kyc.status === "verified" || kyc.status === "pending") return;
+  async function startPaystackKyc() {
+    if (!userId || !kyc || kyc.status === "verified") return;
     setSubmittingKyc(true);
     setError("");
     setNotice("");
     try {
-      const { error: updateError } = await supabase
-        .from("spatdel_kyc_profiles")
-        .update({ status: "pending", updated_at: new Date().toISOString() })
-        .eq("user_id", userId);
-      if (updateError) throw updateError;
-      setNotice("KYC review requested. Identity verification must be completed through SPATDEL's approved verification provider before money movement is enabled.");
+      const response = await fetch("/api/kyc/paystack/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstName, lastName, bankCode, accountNumber, bvn }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error || "Could not start verification.");
+      setBvn("");
+      setAccountNumber("");
+      setNotice(result.message || "Paystack verification has started.");
       await loadWallet(true);
     } catch (caught) {
-      console.error("Could not request KYC review:", caught);
-      setError("Could not submit the KYC request. Apply the latest SPATDEL wallet migration and try again.");
+      console.error("Could not start Paystack KYC:", caught);
+      setError(caught instanceof Error ? caught.message : "Could not start verification. Please try again.");
     } finally {
       setSubmittingKyc(false);
     }
   }
 
   const kycLabel = kyc?.status ? kyc.status.replaceAll("_", " ") : "not started";
-  const canRequestKyc = !!kyc && !["verified", "pending"].includes(kyc.status);
+  const kycInProgress = !!kyc && kyc.status === "pending" && kyc.provider === "paystack" && !!kyc.provider_reference;
+  const canStartKyc = !!kyc && kyc.status !== "verified" && !kycInProgress;
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100 sm:px-6 lg:px-10">
@@ -262,11 +298,49 @@ export default function WalletPage() {
                   <span className="text-sm font-semibold capitalize">{kycLabel}</span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  This page only records your request for review. It does not collect identity documents or approve KYC by itself; verification must be completed by an approved provider and trusted server process.
+                  Verify your Nigerian bank account and BVN through Paystack. Your BVN and full account number are sent securely to Paystack for the check and are not saved in SPATDEL's database.
                 </p>
-                {kyc?.status === "pending" && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">Your request is pending review.</p>}
-                {kyc?.status === "verified" && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">Your identity status is verified. Payment actions will still remain disabled until SPATDEL's payment provider is configured.</p>}
-                {canRequestKyc && <button onClick={() => void requestKycReview()} disabled={submittingKyc} className="mt-5 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">{submittingKyc ? "Submitting…" : "Request KYC review"}</button>}
+                {kycInProgress && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">Paystack is checking your details. This can take a little time; refresh this page to see the result.</p>}
+                {kyc?.status === "rejected" && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-900 dark:bg-rose-950/40 dark:text-rose-100">Paystack could not verify the details. Check your bank, account number and BVN, then try again.</p>}
+                {kyc?.status === "needs_review" && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">The verification request needs attention. Please check your details and try again, or contact SPATDEL support.</p>}
+                {kyc?.status === "verified" && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">Your identity has been verified by Paystack. Wallet payments still require the separate payment and compliance setup to be completed.</p>}
+                {canStartKyc && (
+                  <form
+                    className="mt-5 space-y-4"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void startPaystackKyc();
+                    }}
+                  >
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-sm font-semibold">
+                        First name
+                        <input value={firstName} onChange={(event) => setFirstName(event.target.value)} required maxLength={80} autoComplete="given-name" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                      </label>
+                      <label className="block text-sm font-semibold">
+                        Last name
+                        <input value={lastName} onChange={(event) => setLastName(event.target.value)} required maxLength={80} autoComplete="family-name" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                      </label>
+                    </div>
+                    <label className="block text-sm font-semibold">
+                      Bank
+                      <select value={bankCode} onChange={(event) => setBankCode(event.target.value)} required disabled={loadingBanks || banks.length === 0} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                        <option value="">{loadingBanks ? "Loading banks…" : banks.length ? "Choose your bank" : "Bank list unavailable"}</option>
+                        {banks.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                      </select>
+                    </label>
+                    <label className="block text-sm font-semibold">
+                      Account number
+                      <input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    </label>
+                    <label className="block text-sm font-semibold">
+                      BVN (11 digits)
+                      <input value={bvn} onChange={(event) => setBvn(event.target.value.replace(/\D/g, "").slice(0, 11))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{11}" minLength={11} maxLength={11} placeholder="Enter BVN" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    </label>
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Only submit your own details. Do not enter someone else's BVN or account number. Paystack handles the identity check; SPATDEL stores the provider reference and verification status, not the BVN or full account number.</p>
+                    <button type="submit" disabled={submittingKyc || loadingBanks || banks.length === 0} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">{submittingKyc ? "Starting verification…" : "Verify with Paystack"}</button>
+                  </form>
+                )}
                 {!kyc && <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">KYC status is unavailable. Apply the database migration first.</p>}
               </article>
 

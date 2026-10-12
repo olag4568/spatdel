@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Send,
   Users,
+  Wallet,
 } from "lucide-react";
 
 type Property = {
@@ -406,6 +407,12 @@ export default function Home() {
     }
 
     router.push("/account");
+  }
+
+  function goToWallet() {
+    setProfileMenu(false);
+    setMobileMenu(false);
+    router.push("/wallet");
   }
 
   function goToMessages() {
@@ -1239,6 +1246,14 @@ export default function Home() {
                         size={15}
                       />
                       My Dashboard
+                    </button>
+
+                    <button
+                      onClick={goToWallet}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
+                    >
+                      <Wallet size={15} />
+                      Wallet & Transactions
                     </button>
 
                     <button

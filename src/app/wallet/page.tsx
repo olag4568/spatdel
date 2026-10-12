@@ -338,9 +338,12 @@ export default function WalletPage() {
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white">
             <ArrowLeft size={17} /> Back to SPATDEL
           </Link>
-          <button onClick={() => void loadWallet(true)} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900">
-            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} /> Refresh
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && <Link href="/admin/payments" className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700"><ShieldCheck size={16} /> Admin payment review</Link>}
+            <button onClick={() => void loadWallet(true)} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900">
+              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} /> Refresh
+            </button>
+          </div>
         </div>
 
         <section className="rounded-3xl bg-slate-900 p-6 text-white shadow-sm sm:p-8">

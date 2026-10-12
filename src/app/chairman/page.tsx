@@ -15,6 +15,7 @@ import {
   MessageSquare,
   ShieldCheck,
   Users,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 

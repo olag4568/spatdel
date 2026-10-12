@@ -785,13 +785,22 @@ export default function AccountPage() {
             />
           </button>
 
-          <button
-            onClick={goHome}
-            className="flex items-center gap-2 rounded-full border border-[#d5dde2] bg-white px-4 py-2.5 text-sm font-semibold transition hover:border-[#102f46] hover:bg-[#f1f4f5]"
-          >
-            <ArrowLeft size={17} />
-            Back Home
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/wallet")}
+              className="flex items-center gap-2 rounded-full bg-[#087b62] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#066851]"
+            >
+              <Wallet size={17} />
+              Wallet
+            </button>
+            <button
+              onClick={goHome}
+              className="flex items-center gap-2 rounded-full border border-[#d5dde2] bg-white px-4 py-2.5 text-sm font-semibold transition hover:border-[#102f46] hover:bg-[#f1f4f5]"
+            >
+              <ArrowLeft size={17} />
+              Back Home
+            </button>
+          </div>
         </div>
       </header>
 

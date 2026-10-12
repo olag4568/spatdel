@@ -1295,7 +1295,7 @@ export default function AdminDashboard() {
                           </span>
                         ) : (
                           <select
-                            value={user.role}
+                            value={user.role_assigned === false ? "" : user.role}
                             disabled={
                               updatingRoleId === user.id
                             }
@@ -1308,6 +1308,7 @@ export default function AdminDashboard() {
                             }
                             className="rounded-lg border border-[#102f46]/10 bg-white px-3 py-2 text-xs font-bold outline-none transition focus:border-[#087b62] disabled:opacity-50"
                           >
+                            <option value="" disabled>Assign role…</option>
                             <option value="tenant">
                               Tenant
                             </option>

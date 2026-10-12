@@ -8,7 +8,7 @@ async function getClients() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !anonKey || !serviceKey) {
-    return { response: NextResponse.json({ error: "Admin payment tools are not configured on the server." }, { status: 503 }) };
+    return { adminClient: null, response: NextResponse.json({ error: "Admin payment tools are not configured on the server." }, { status: 503 }) };
   }
 
   const cookieStore = await cookies();
@@ -27,7 +27,7 @@ async function getClients() {
 
   const { data, error } = await authClient.auth.getUser();
   if (error || !data.user) {
-    return { response: NextResponse.json({ error: "Please sign in first." }, { status: 401 }) };
+    return { adminClient: null, response: NextResponse.json({ error: "Please sign in first." }, { status: 401 }) };
   }
 
   const adminClient = createServerClient(url, serviceKey, {
@@ -42,10 +42,10 @@ async function getClients() {
 
   if (profileError) {
     console.error("Could not check admin role:", profileError);
-    return { response: NextResponse.json({ error: "Could not verify admin permissions." }, { status: 500 }) };
+    return { adminClient: null, response: NextResponse.json({ error: "Could not verify admin permissions." }, { status: 500 }) };
   }
   if (profile?.role !== "admin") {
-    return { response: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
+    return { adminClient: null, response: NextResponse.json({ error: "Admin access required." }, { status: 403 }) };
   }
 
   return { adminClient, response: null };

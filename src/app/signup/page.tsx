@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -8,16 +8,9 @@ import {
   EyeOff,
   ShieldCheck,
   UserPlus,
-  User,
-  Building2,
-  Home,
-  ShieldCheck as ChairmanIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type UserRole = "tenant" | "agent" | "landlord" | "chairman";
-
-const SPATDEL_COUNTRIES = ["Argentina","Australia","Austria","Bangladesh","Belgium","Botswana","Brazil","Cameroon","Canada","China","Colombia","Denmark","Egypt","Ethiopia","Finland","France","Germany","Ghana","India","Indonesia","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Kenya","Malaysia","Mexico","Morocco","Nepal","Netherlands","New Zealand","Nigeria","Norway","Pakistan","Philippines","Poland","Portugal","Rwanda","Saudi Arabia","Senegal","Singapore","South Africa","South Korea","Spain","Sri Lanka","Sweden","Switzerland","Tanzania","Thailand","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Vietnam","Zambia","Zimbabwe"];
 
 export default function SignupPage() {
   const router = useRouter();
@@ -27,34 +20,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [communityName, setCommunityName] = useState("");
-  const [communityCountry, setCommunityCountry] = useState("");
-  const [communityRegions, setCommunityRegions] = useState<string[]>([]);
-
-  useEffect(() => {
-    const country = communityCountry.trim();
-    if (!country) { setCommunityRegions([]); return; }
-    const controller = new AbortController();
-    fetch("https://countriesnow.space/api/v0.1/countries/states", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country }),
-      signal: controller.signal,
-    })
-      .then((response) => response.ok ? response.json() : null)
-      .then((result) => {
-        const states = result?.data?.states;
-        setCommunityRegions(Array.isArray(states) ? states.map((item: { name?: string }) => item.name).filter((name: unknown): name is string => typeof name === "string") : []);
-      })
-      .catch(() => { if (!controller.signal.aborted) setCommunityRegions([]); });
-    return () => controller.abort();
-  }, [communityCountry]);
-  const [communityState, setCommunityState] = useState("");
-  const [localGovernment, setLocalGovernment] = useState("");
-  const [applicationReason, setApplicationReason] = useState("");
-
-  const [role, setRole] = useState<UserRole>("tenant");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
@@ -97,11 +62,6 @@ export default function SignupPage() {
       return;
     }
 
-    if (role === "chairman" && (!communityName.trim() || !communityCountry.trim() || !communityState.trim() || !localGovernment.trim())) {
-      setError("Please enter your country, region/state, administrative area, and community name.");
-      return;
-    }
-
     setLoading(true);
 
     const { data, error: signupError } =
@@ -111,16 +71,7 @@ export default function SignupPage() {
         options: {
           data: {
             full_name: cleanName,
-            // Chairman applicants remain ordinary tenants until an admin approves them.
-            role: role === "chairman" ? "tenant" : role,
-            requested_role: role === "chairman" ? "chairman" : role,
-            ...(role === "chairman" ? {
-              chairman_community_name: communityName.trim(),
-              chairman_country: communityCountry.trim(),
-              chairman_state: communityState.trim(),
-              chairman_local_government: localGovernment.trim(),
-              chairman_application_reason: applicationReason.trim(),
-            } : {}),
+            // Every new account starts as an ordinary user. Privileged roles are assigned by an admin.
           },
         },
       });
@@ -156,11 +107,7 @@ export default function SignupPage() {
       return;
     }
 
-    setMessage(
-      role === "chairman"
-        ? "Your Chairman application has been submitted for review. Your account will not receive chairman access unless an admin approves it. Please check your email to confirm your account before signing in."
-        : `Account created successfully as a ${role === "tenant" ? "Tenant" : role === "agent" ? "Agent" : "Landlord"}. Please check your email to confirm your account before signing in.`
-    );
+    setMessage("Your ordinary SPATDEL account has been created. Please check your email to confirm your account before signing in. An admin can assign additional roles when needed.");
 
     setPassword("");
     setConfirmPassword("");
@@ -289,117 +236,17 @@ export default function SignupPage() {
                   />
                 </div>
 
-                {/* ACCOUNT TYPE */}
-                <div>
-                  <label className="mb-3 block text-xs font-bold uppercase tracking-wide">
-                    I am a
-                  </label>
-
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {/* TENANT */}
-                    <button
-                      type="button"
-                      onClick={() => setRole("tenant")}
-                      className={`rounded-lg border p-3 text-center transition ${
-                        role === "tenant"
-                          ? "border-[#087b62] bg-[#e4f5ee] text-[#087b62]"
-                          : "border-[#102f46]/15 bg-[#f8f7f2] text-[#102f46] hover:border-[#087b62]/40"
-                      }`}
-                    >
-                      <User
-                        size={20}
-                        className="mx-auto"
-                      />
-
-                      <span className="mt-2 block text-xs font-bold">
-                        Tenant
-                      </span>
-                    </button>
-
-                    {/* AGENT */}
-                    <button
-                      type="button"
-                      onClick={() => setRole("agent")}
-                      className={`rounded-lg border p-3 text-center transition ${
-                        role === "agent"
-                          ? "border-[#087b62] bg-[#e4f5ee] text-[#087b62]"
-                          : "border-[#102f46]/15 bg-[#f8f7f2] text-[#102f46] hover:border-[#087b62]/40"
-                      }`}
-                    >
-                      <Building2
-                        size={20}
-                        className="mx-auto"
-                      />
-
-                      <span className="mt-2 block text-xs font-bold">
-                        Agent
-                      </span>
-                    </button>
-
-                    {/* CHAIRMAN — application only; approval is required for dashboard access */}
-                    <button
-                      type="button"
-                      onClick={() => setRole("chairman")}
-                      className={`rounded-lg border p-3 text-center transition ${role === "chairman" ? "border-[#087b62] bg-[#e4f5ee] text-[#087b62]" : "border-[#102f46]/15 bg-[#f8f7f2] text-[#102f46] hover:border-[#087b62]/40"}`}
-                    >
-                      <ChairmanIcon size={20} className="mx-auto" />
-                      <span className="mt-2 block text-xs font-bold">Chairman</span>
-                    </button>
-
-                    {/* LANDLORD */}
-                    <button
-                      type="button"
-                      onClick={() => setRole("landlord")}
-                      className={`rounded-lg border p-3 text-center transition ${
-                        role === "landlord"
-                          ? "border-[#087b62] bg-[#e4f5ee] text-[#087b62]"
-                          : "border-[#102f46]/15 bg-[#f8f7f2] text-[#102f46] hover:border-[#087b62]/40"
-                      }`}
-                    >
-                      <Home
-                        size={20}
-                        className="mx-auto"
-                      />
-
-                      <span className="mt-2 block text-xs font-bold">
-                        Landlord
-                      </span>
-                    </button>
+                <div className="rounded-xl border border-[#087b62]/20 bg-[#e4f5ee]/50 p-4">
+                  <div className="flex items-start gap-3">
+                    <UserPlus size={22} className="mt-0.5 shrink-0 text-[#087b62]" />
+                    <div>
+                      <h3 className="text-sm font-bold">Create your ordinary user account</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#52636d]">
+                        Every new account starts with standard access. You can browse properties and post a house for rent or sale in Ijegun, Ikotun, Lagos State. Only the SPATDEL admin can assign agent or chairman permissions.
+                      </p>
+                    </div>
                   </div>
-
-                  <p className="mt-2 text-[10px] text-[#71808a]">
-                    Choose the account type that best describes you.
-                  </p>
                 </div>
-
-                {role === "chairman" && (
-                  <div className="space-y-4 rounded-xl border border-[#087b62]/20 bg-[#e4f5ee]/50 p-4">
-                    <div>
-                      <h3 className="text-sm font-bold">Chairman application</h3>
-                      <p className="mt-1 text-xs leading-5 text-[#71808a]">Tell us which community you represent. An admin must review your application before chairman access is granted.</p>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Community name</label>
-                      <input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Your community or estate name" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Country</label>
-                      <input list="spatdel-countries" value={communityCountry} onChange={(e) => setCommunityCountry(e.target.value)} placeholder="Search or enter any country" required className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><datalist id="spatdel-countries">{SPATDEL_COUNTRIES.map((country) => <option key={country} value={country} />)}</datalist>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">State / province / region</label>
-                      <input list="spatdel-regions" value={communityState} onChange={(e) => setCommunityState(e.target.value)} placeholder="Search or enter state / region" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" /><datalist id="spatdel-regions">{communityRegions.map((region) => <option key={region} value={region} />)}</datalist>
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">District / county / local government area</label>
-                      <input value={localGovernment} onChange={(e) => setLocalGovernment(e.target.value)} placeholder="e.g. Ikeja" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
-                    </div>
-                    <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Why should you be the chairman? (optional)</label>
-                      <textarea value={applicationReason} onChange={(e) => setApplicationReason(e.target.value)} rows={3} placeholder="Briefly explain your role in the community" className="w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none focus:border-[#087b62]" />
-                    </div>
-                  </div>
-                )}
 
                 {/* PASSWORD */}
                 <div>

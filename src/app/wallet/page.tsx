@@ -82,6 +82,7 @@ export default function WalletPage() {
   const [checkingAccount, setCheckingAccount] = useState(false);
   const [bvn, setBvn] = useState("");
   const [banks, setBanks] = useState<BankOption[]>([]);
+  const [paystackConfigured, setPaystackConfigured] = useState(false);
   const [loadingBanks, setLoadingBanks] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -179,10 +180,17 @@ export default function WalletPage() {
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok) throw new Error(result?.error || "Could not load banks.");
-        if (active) setBanks(Array.isArray(result.banks) ? result.banks : []);
+        if (active) {
+          setPaystackConfigured(result?.configured === true);
+          setBanks(Array.isArray(result.banks) ? result.banks : []);
+        }
       })
       .catch((caught) => {
         console.error("Could not load Paystack banks:", caught);
+        if (active) {
+          setPaystackConfigured(false);
+          setBanks([]);
+        }
       })
       .finally(() => {
         if (active) setLoadingBanks(false);
@@ -336,7 +344,12 @@ export default function WalletPage() {
                 {kyc?.status === "rejected" && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-900 dark:bg-rose-950/40 dark:text-rose-100">Paystack could not verify the details. Check your bank, account number and BVN, then try again.</p>}
                 {kyc?.status === "needs_review" && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">The verification request needs attention. Please check your details and try again, or contact SPATDEL support.</p>}
                 {kyc?.status === "verified" && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">Your identity has been verified by Paystack. Wallet payments still require the separate payment and compliance setup to be completed.</p>}
-                {canStartKyc && (
+                {!paystackConfigured && (
+                  <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                    Paystack setup is pending. The SPATDEL admin has not connected the payment provider yet, so bank lookup and identity verification are temporarily unavailable. You do not need to enter bank details or BVN until the admin announces that verification is ready.
+                  </p>
+                )}
+                {canStartKyc && paystackConfigured && (
                   <form
                     className="mt-5 space-y-4"
                     onSubmit={(event) => {

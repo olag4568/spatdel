@@ -117,10 +117,12 @@ export default function AgentDashboard() {
         return;
       }
 
-      if (data.role !== "agent" && data.role !== "landlord") {
-        router.replace(data.role === "admin" ? "/admin" : "/");
+      if (data.role === "admin") {
+        router.replace("/admin");
         return;
       }
+
+      // All ordinary users may publish a property listing; agent/landlord status is not required.
 
       setProfile(data as Profile);
 
@@ -284,7 +286,7 @@ export default function AgentDashboard() {
     setNotice("");
 
     if (!profile) {
-      setError("Sign in with an agent or landlord account first.");
+      setError("Please sign in to post a property.");
       return;
     }
 
@@ -292,6 +294,12 @@ export default function AgentDashboard() {
     const numericBeds = Number(beds);
     const numericBaths = Number(baths);
     const numericSqm = sqm.trim() === "" ? null : Number(sqm);
+
+    if (!location.trim().toLocaleLowerCase().includes("ijegun")) {
+      setError("SPATDEL is currently available in Ijegun, Ikotun, Lagos State only. You can register and use your account, but properties outside Ijegun cannot be listed yet.");
+      setNotice("");
+      return;
+    }
 
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
       setError("Enter a valid price greater than zero.");
@@ -471,8 +479,18 @@ export default function AgentDashboard() {
               <label htmlFor="location" className="text-sm font-semibold">Full location *</label>
               <div className="relative mt-2">
                 <MapPin size={17} className="absolute left-4 top-3.5 text-[#8a969f]" />
-                <input id="location" required maxLength={200} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Area, city, state" className="w-full rounded-xl border border-[#d5dde2] py-3 pl-11 pr-4 text-sm outline-none focus:border-[#087b62]" />
+                <input id="location" required maxLength={200} value={location} onChange={(e) => {
+                  const value = e.target.value;
+                  setLocation(value);
+                  if (value.trim() && !value.toLocaleLowerCase().includes("ijegun")) {
+                    setNotice("SPATDEL is currently available in Ijegun, Ikotun, Lagos State only. This location is outside our MVP launch area, so this listing cannot be submitted yet.");
+                  } else {
+                    setNotice("");
+                    setError("");
+                  }
+                }} placeholder="Street/area, Ijegun, Ikotun, Lagos State" className="w-full rounded-xl border border-[#d5dde2] py-3 pl-11 pr-4 text-sm outline-none focus:border-[#087b62]" />
               </div>
+              {notice && <p role="status" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{notice}</p>}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

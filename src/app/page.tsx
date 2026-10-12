@@ -415,6 +415,12 @@ export default function Home() {
     router.push("/wallet");
   }
 
+  function goToPostProperty() {
+    setProfileMenu(false);
+    setMobileMenu(false);
+    router.push("/agent");
+  }
+
   function goToMessages() {
     setProfileMenu(false);
     setMobileMenu(false);
@@ -1254,6 +1260,14 @@ export default function Home() {
                     >
                       <Wallet size={15} />
                       Wallet & Transactions
+                    </button>
+
+                    <button
+                      onClick={goToPostProperty}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
+                    >
+                      <HomeIcon size={15} />
+                      Post a Property
                     </button>
 
                     <button

@@ -100,6 +100,15 @@ security definer
 set search_path = public
 as $$
 begin
+  if tg_op = 'INSERT' then
+    if coalesce(auth.role(), '') in ('anon', 'authenticated')
+       and not public.spatdel_is_admin() then
+      new.saved_amount_kobo := 0;
+    end if;
+    new.updated_at := now();
+    return new;
+  end if;
+
   if new.saved_amount_kobo is distinct from old.saved_amount_kobo
      and coalesce(auth.role(), '') in ('anon', 'authenticated')
      and not public.spatdel_is_admin() then
@@ -112,7 +121,7 @@ $$;
 
 drop trigger if exists spatdel_protect_savings_goal_balance_trigger on public.spatdel_savings_goals;
 create trigger spatdel_protect_savings_goal_balance_trigger
-before update on public.spatdel_savings_goals
+before insert or update on public.spatdel_savings_goals
 for each row execute function public.spatdel_protect_savings_goal_balance();
 
 revoke all on function public.spatdel_protect_savings_goal_balance() from public, anon, authenticated;

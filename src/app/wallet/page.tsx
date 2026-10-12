@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import SavingsGoalsPanel from "@/components/SavingsGoalsPanel";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -364,7 +365,7 @@ export default function WalletPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-300">{isAdmin ? "Admin wallet oversight" : "My SPATDEL wallet"}</p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Wallet & transactions</h1><div className="mt-4 flex flex-wrap gap-2"><Link href="/savings" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Savings goals</Link><Link href="/ratings" className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">Ratings & reviews</Link></div>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Wallet & transactions</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
                 SPATDEL currently serves Ijegun, Ikotun, Lagos State. Your balance is calculated from confirmed ledger entries; pending payments are not treated as completed funds.
               </p>
@@ -580,6 +581,9 @@ export default function WalletPage() {
             </section>
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
               <div className="flex items-start gap-2"><AlertTriangle size={18} className="mt-1 shrink-0" /><p><strong>Payments are not live yet.</strong> Do not send money to an admin's personal account. Deposits, escrow/collection, refunds and seller payouts must be processed and reconciled through an approved provider and trusted server-side webhooks. This dashboard is the first UI layer, not a live-money transfer system.</p></div>
+            </section>
+            <section id="savings-goals" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+              <SavingsGoalsPanel />
             </section>
           </>
         )}

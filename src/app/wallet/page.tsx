@@ -350,7 +350,7 @@ export default function WalletPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-300">{isAdmin ? "Admin wallet oversight" : "My SPATDEL wallet"}</p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Wallet & transactions</h1>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Wallet & transactions</h1><div className="mt-4 flex flex-wrap gap-2"><Link href="/savings" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">Savings goals</Link><Link href="/ratings" className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">Ratings & reviews</Link></div>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
                 SPATDEL currently serves Ijegun, Ikotun, Lagos State. Your balance is calculated from confirmed ledger entries; pending payments are not treated as completed funds.
               </p>

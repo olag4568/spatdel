@@ -32,6 +32,7 @@ type Profile = {
   full_name: string | null;
   email: string | null;
   role: UserRole;
+  role_assigned?: boolean;
   created_at?: string | null;
 };
 
@@ -188,7 +189,7 @@ export default function AdminDashboard() {
     const { data: adminProfile, error: profileError } =
       await supabase
         .from("profiles")
-        .select("id, full_name, email, role, created_at")
+        .select("id, full_name, email, role, role_assigned, created_at")
         .eq("id", user.id)
         .single();
 
@@ -209,7 +210,7 @@ export default function AdminDashboard() {
     const { data: allUsers, error: usersError } =
       await supabase
         .from("profiles")
-        .select("id, full_name, email, role, created_at")
+        .select("id, full_name, email, role, role_assigned, created_at")
         .order("created_at", { ascending: false });
 
     if (usersError) {
@@ -383,7 +384,7 @@ export default function AdminDashboard() {
     setUsers((currentUsers) =>
       currentUsers.map((user) =>
         user.id === userId
-          ? { ...user, role: newRole }
+          ? { ...user, role: newRole, role_assigned: true }
           : user
       )
     );
@@ -640,7 +641,7 @@ export default function AdminDashboard() {
       current.map((item) => item.id === application.id ? { ...item, status: decision } : item)
     );
     if (decision === "approved") {
-      setUsers((current) => current.map((item) => item.id === application.user_id ? { ...item, role: "chairman" } : item));
+      setUsers((current) => current.map((item) => item.id === application.user_id ? { ...item, role: "chairman", role_assigned: true } : item));
     }
     setReviewingApplicationId(null);
   }
@@ -664,8 +665,10 @@ export default function AdminDashboard() {
     setResolvingReportId(null);
   }
 
+  const memberCount = users.filter((user) => user.role_assigned === false).length;
+
   const tenantCount = users.filter(
-    (user) => user.role === "tenant"
+    (user) => user.role === "tenant" && user.role_assigned !== false
   ).length;
 
   const agentCount = users.filter(
@@ -943,6 +946,12 @@ export default function AdminDashboard() {
         {/* ROLE STATS */}
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <RoleCard
+            title="Members awaiting roles"
+            value={memberCount}
+            icon={<Users size={19} />}
+          />
+
+          <RoleCard
             title="Tenants"
             value={tenantCount}
             icon={<User size={19} />}
@@ -1147,7 +1156,7 @@ export default function AdminDashboard() {
                     </h2>
 
                     <p className="text-xs text-[#71808a]">
-                      Manage SPATDEL accounts and roles.
+                      New accounts appear as Members until an admin assigns Tenant, Agent, Landlord, Chairman or Admin access.
                     </p>
                   </div>
                 </div>
@@ -1272,7 +1281,7 @@ export default function AdminDashboard() {
                       </td>
 
                       <td className="px-5 py-4">
-                        <RoleBadge role={user.role} />
+                        <RoleBadge role={user.role} assigned={user.role_assigned !== false} />
                       </td>
 
                       <td className="px-5 py-4 text-sm text-[#71808a]">
@@ -1949,7 +1958,10 @@ function RoleCard({
   );
 }
 
-function RoleBadge({ role }: { role: UserRole }) {
+function RoleBadge({ role, assigned = true }: { role: UserRole; assigned?: boolean }) {
+  if (!assigned) {
+    return <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Member · role pending</span>;
+  }
   const styles = {
     tenant:
       "bg-blue-50 text-blue-700 border-blue-100",

@@ -1279,6 +1279,9 @@ export default function Home() {
                       Messages
                     </button>
 
+                    <button onClick={() => router.push("/savings")} className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"><Wallet size={15} /> Savings Goals</button>
+                    <button onClick={() => router.push("/ratings")} className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"><Star size={15} /> Ratings & Reviews</button>
+
                     {userRole ===
                       "admin" && (
                       <button
@@ -1449,6 +1452,9 @@ export default function Home() {
                     <MessageSquare size={16} />
                     Messages
                   </button>
+
+                  <button onClick={() => router.push("/savings")} className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"><Wallet size={16} /> Savings Goals</button>
+                  <button onClick={() => router.push("/ratings")} className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"><Star size={16} /> Ratings & Reviews</button>
 
                   {userRole ===
                     "admin" && (

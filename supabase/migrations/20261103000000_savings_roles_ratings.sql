@@ -195,3 +195,30 @@ drop policy if exists "Users can delete their own ratings" on public.spatdel_rat
 create policy "Users can delete their own ratings"
   on public.spatdel_ratings for delete to authenticated
   using (reviewer_id = auth.uid());
+
+
+-- Public member profiles can show an unassigned account as "SPATDEL member"
+-- without exposing private account data or changing the internal tenant-compatible role.
+create or replace function public.spatdel_get_public_profile_with_assignment(target_profile_id uuid)
+returns table (
+  id uuid,
+  full_name text,
+  username text,
+  bio text,
+  avatar_url text,
+  role text,
+  role_assigned boolean
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.id, p.full_name, p.username, p.bio, p.avatar_url, p.role::text, p.role_assigned
+  from public.profiles p
+  where p.id = target_profile_id
+    and auth.uid() is not null;
+$$;
+
+revoke all on function public.spatdel_get_public_profile_with_assignment(uuid) from public, anon;
+grant execute on function public.spatdel_get_public_profile_with_assignment(uuid) to authenticated;

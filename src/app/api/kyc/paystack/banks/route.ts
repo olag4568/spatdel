@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
 export async function GET() {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {

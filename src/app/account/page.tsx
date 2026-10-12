@@ -26,7 +26,6 @@ import {
   FileText,
   Wallet,
   Search,
-  Bell,
   CheckCircle2,
   Clock3,
   Eye,

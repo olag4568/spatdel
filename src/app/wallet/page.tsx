@@ -207,7 +207,7 @@ export default function WalletPage() {
   const ownWallet = wallets.find((wallet) => wallet.user_id === userId);
 
   async function resolvePaystackAccount() {
-    if (!bankCode || !/^\\d{10}$/.test(accountNumber)) {
+    if (!bankCode || !/^\d{10}$/.test(accountNumber)) {
       setError("Choose a bank and enter a valid 10-digit account number first.");
       return;
     }
@@ -363,7 +363,7 @@ export default function WalletPage() {
                     </label>
                     <label className="block text-sm font-semibold">
                       Account number
-                      <input value={accountNumber} onChange={(event) => { setAccountNumber(event.target.value.replace(/\\D/g, "").slice(0, 10)); setAccountName(""); }} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                      <input value={accountNumber} onChange={(event) => { setAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10)); setAccountName(""); }} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                     </label>
                     <button type="button" onClick={() => void resolvePaystackAccount()} disabled={checkingAccount || loadingBanks || !bankCode || accountNumber.length !== 10} className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800 hover:bg-indigo-100 disabled:opacity-60 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-200">
                       {checkingAccount ? "Checking account…" : "Check account name"}

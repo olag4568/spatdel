@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export const runtime = "nodejs";
-
 export async function POST(request: Request) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

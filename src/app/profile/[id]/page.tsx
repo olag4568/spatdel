@@ -13,7 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 type Role = "tenant" | "agent" | "landlord" | "admin" | string;
-type Profile = { id: string; full_name: string | null; username: string | null; bio: string | null; avatar_url: string | null; contact_phone: string | null; location: string | null; role: Role };
+type Profile = { id: string; full_name: string | null; username: string | null; bio: string | null; avatar_url: string | null; contact_phone: string | null; location: string | null; role: Role; role_assigned: boolean };
 type Property = {
   id: string;
   title: string | null;
@@ -25,7 +25,8 @@ type Property = {
   baths: number | null;
 };
 
-function roleLabel(role: Role) {
+function roleLabel(role: Role, assigned = true) {
+  if (!assigned) return "SPATDEL member";
   if (role === "admin") return "Admin";
   if (role === "chairman") return "Community Chairman";
   if (role === "agent") return "Agent";
@@ -78,7 +79,7 @@ function PublicProfileContent() {
       }
 
       const { data: profileRows, error: profileError } = await supabase.rpc(
-        "spatdel_get_public_profile",
+        "spatdel_get_public_profile_with_assignment",
         { target_profile_id: profileId }
       );
 
@@ -171,7 +172,7 @@ function PublicProfileContent() {
                   {profile.role === "agent" && <p className="mt-2 text-sm font-semibold text-[#087b62]">Property professional on SPATDEL</p>}
                   {profile.role === "landlord" && <p className="mt-2 text-sm font-semibold text-[#087b62]">Property owner on SPATDEL</p>}
                   <span className="mt-3 inline-flex rounded-full bg-[#e8f4ed] px-3 py-1.5 text-sm font-bold text-[#087b62]">
-                    {roleLabel(profile.role)}
+                    {roleLabel(profile.role, profile.role_assigned)}
                   </span>
                   <p className="mt-4 max-w-xl whitespace-pre-wrap text-sm leading-6 text-[#687987]">
                     {profile.bio?.trim() || "This member hasn't added a bio yet."}
@@ -204,7 +205,7 @@ function PublicProfileContent() {
                 <dl className="space-y-4 text-sm">
                   <div className="flex items-start justify-between gap-4">
                     <dt className="text-[#687987]">Member type</dt>
-                    <dd className="text-right font-bold">{roleLabel(profile.role)}</dd>
+                    <dd className="text-right font-bold">{roleLabel(profile.role, profile.role_assigned)}</dd>
                   </div>
                   <div className="flex items-start justify-between gap-4">
                     <dt className="text-[#687987]">Username</dt>

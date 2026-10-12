@@ -78,6 +78,8 @@ export default function WalletPage() {
   const [lastName, setLastName] = useState("");
   const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [checkingAccount, setCheckingAccount] = useState(false);
   const [bvn, setBvn] = useState("");
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [loadingBanks, setLoadingBanks] = useState(false);
@@ -204,8 +206,38 @@ export default function WalletPage() {
 
   const ownWallet = wallets.find((wallet) => wallet.user_id === userId);
 
+  async function resolvePaystackAccount() {
+    if (!bankCode || !/^\\d{10}$/.test(accountNumber)) {
+      setError("Choose a bank and enter a valid 10-digit account number first.");
+      return;
+    }
+    setCheckingAccount(true);
+    setError("");
+    setNotice("");
+    setAccountName("");
+    try {
+      const response = await fetch("/api/kyc/paystack/resolve-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bankCode, accountNumber }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error || "Could not check this account.");
+      if (typeof result.accountName !== "string" || !result.accountName) {
+        throw new Error("Paystack did not return an account name.");
+      }
+      setAccountName(result.accountName);
+      setNotice("Account name found. Confirm it is your own account before continuing.");
+    } catch (caught) {
+      console.error("Could not resolve Paystack account:", caught);
+      setError(caught instanceof Error ? caught.message : "Could not check this account.");
+    } finally {
+      setCheckingAccount(false);
+    }
+  }
+
   async function startPaystackKyc() {
-    if (!userId || !kyc || kyc.status === "verified") return;
+    if (!userId || !kyc || kyc.status === "verified" || !accountName) return;
     setSubmittingKyc(true);
     setError("");
     setNotice("");
@@ -324,21 +356,31 @@ export default function WalletPage() {
                     </div>
                     <label className="block text-sm font-semibold">
                       Bank
-                      <select value={bankCode} onChange={(event) => setBankCode(event.target.value)} required disabled={loadingBanks || banks.length === 0} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <select value={bankCode} onChange={(event) => { setBankCode(event.target.value); setAccountName(""); }} required disabled={loadingBanks || banks.length === 0} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
                         <option value="">{loadingBanks ? "Loading banks…" : banks.length ? "Choose your bank" : "Bank list unavailable"}</option>
                         {banks.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
                       </select>
                     </label>
                     <label className="block text-sm font-semibold">
                       Account number
-                      <input value={accountNumber} onChange={(event) => setAccountNumber(event.target.value.replace(/\D/g, "").slice(0, 10))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                      <input value={accountNumber} onChange={(event) => { setAccountNumber(event.target.value.replace(/\\D/g, "").slice(0, 10)); setAccountName(""); }} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                     </label>
+                    <button type="button" onClick={() => void resolvePaystackAccount()} disabled={checkingAccount || loadingBanks || !bankCode || accountNumber.length !== 10} className="w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800 hover:bg-indigo-100 disabled:opacity-60 dark:border-indigo-900 dark:bg-indigo-950/50 dark:text-indigo-200">
+                      {checkingAccount ? "Checking account…" : "Check account name"}
+                    </button>
+                    {accountName && (
+                      <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">Account name returned by Paystack</p>
+                        <p className="mt-1 font-bold text-emerald-950 dark:text-emerald-100">{accountName}</p>
+                        <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">Continue only if this is your account.</p>
+                      </div>
+                    )}
                     <label className="block text-sm font-semibold">
                       BVN (11 digits)
                       <input value={bvn} onChange={(event) => setBvn(event.target.value.replace(/\D/g, "").slice(0, 11))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{11}" minLength={11} maxLength={11} placeholder="Enter BVN" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                     </label>
                     <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Only submit your own details. Do not enter someone else's BVN or account number. Paystack handles the identity check; SPATDEL stores the provider reference and verification status, not the BVN or full account number.</p>
-                    <button type="submit" disabled={submittingKyc || loadingBanks || banks.length === 0} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">{submittingKyc ? "Starting verification…" : "Verify with Paystack"}</button>
+                    <button type="submit" disabled={submittingKyc || loadingBanks || banks.length === 0 || !accountName} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">{submittingKyc ? "Starting verification…" : "Verify identity with Paystack"}</button>
                   </form>
                 )}
                 {!kyc && <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">KYC status is unavailable. Apply the database migration first.</p>}

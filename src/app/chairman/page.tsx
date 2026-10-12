@@ -184,6 +184,7 @@ export default function ChairmanDashboard() {
             <span><span className="block text-xl font-bold tracking-tight">SPATDEL</span><span className="block text-xs text-slate-500">Community chairman portal</span></span>
           </button>
           <div className="flex items-center gap-3">
+            <button onClick={() => router.push("/wallet")} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50"><Wallet className="h-4 w-4" /><span className="hidden sm:inline">Wallet</span></button>
             <div className="hidden text-right sm:block"><p className="text-sm font-semibold">{profile?.full_name || "Chairman"}</p><p className="text-xs text-slate-500">Community chairman</p></div>
             <button onClick={() => router.push("/community")} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"><MessageSquare className="h-4 w-4" /><span className="hidden sm:inline">Community chat</span></button>
             <button onClick={signOut} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50"><LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign out</span></button>

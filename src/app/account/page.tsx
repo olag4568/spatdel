@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type UserRole = "tenant" | "agent" | "landlord" | "admin";
+type UserRole = "member" | "tenant" | "agent" | "landlord" | "admin";
 
 type Property = {
   id: string;
@@ -84,7 +84,8 @@ export default function AccountPage() {
 
   // USER ROLE
   const [userRole, setUserRole] =
-    useState<UserRole>("tenant");
+    useState<UserRole>("member");
+  const [roleAssigned, setRoleAssigned] = useState(false);
   const [rewardAmount, setRewardAmount] = useState<number | null>(null);
   const [rewardSpunAt, setRewardSpunAt] = useState<string | null>(null);
   const [rewardLoading, setRewardLoading] = useState(false);
@@ -153,12 +154,14 @@ export default function AccountPage() {
       const { data: profile, error: profileError } =
         await supabase
           .from("profiles")
-          .select("role")
+          .select("role, role_assigned")
           .eq("id", user.id)
           .maybeSingle();
 
       if (!profileError && profile?.role) {
-        setUserRole(profile.role as UserRole);
+        const assigned = profile.role_assigned !== false;
+        setRoleAssigned(assigned);
+        setUserRole(assigned ? (profile.role as UserRole) : "member");
       }
 
       setLoading(false);
@@ -603,8 +606,10 @@ export default function AccountPage() {
         return "Property Agent";
       case "landlord":
         return "Landlord";
-      default:
+      case "tenant":
         return "Tenant";
+      default:
+        return "SPATDEL Member";
     }
   }
 
@@ -811,7 +816,7 @@ export default function AccountPage() {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-2 text-sm font-bold uppercase tracking-[0.18em] text-[#738391]">
-                Tenant Dashboard
+                {roleAssigned ? `${getRoleLabel()} Dashboard` : "SPATDEL Member"}
               </p>
 
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -819,8 +824,9 @@ export default function AccountPage() {
               </h1>
 
               <p className="mt-3 max-w-2xl text-[#607080]">
-                Find your next home, manage saved properties
-                and keep track of your SPATDEL activity.
+                {roleAssigned
+                  ? "Manage your SPATDEL profile, saved properties and account activity."
+                  : "Your account is ready. An SPATDEL admin will assign your role before role-specific dashboard features become available."}
               </p>
             </div>
 
@@ -1703,33 +1709,6 @@ export default function AccountPage() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* NOTIFICATION PREVIEW */}
-        <div className="mt-6 rounded-3xl border border-[#dce3e7] bg-white p-6 shadow-sm sm:p-7">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#fff4d6] text-[#9a7010]">
-                <Bell size={21} />
-              </div>
-
-              <div>
-                <h2 className="font-bold">
-                  Property Notifications
-                </h2>
-
-                <p className="mt-1 text-sm text-[#738391]">
-                  Important property updates and replies will
-                  appear here when notifications are connected.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-full bg-[#f5f7f8] px-4 py-2 text-xs font-bold text-[#607080]">
-              <CheckCircle2 size={14} />
-              Ready
-            </div>
           </div>
         </div>
 

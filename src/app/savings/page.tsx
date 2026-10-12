@@ -41,6 +41,7 @@ export default function SavingsPage() {
   const [goalType, setGoalType] = useState<Goal["goal_type"]>("rent");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [today, setToday] = useState("");
   const [notes, setNotes] = useState("");
 
   const loadGoals = useCallback(async () => {
@@ -65,7 +66,10 @@ export default function SavingsPage() {
     setLoading(false);
   }, [router]);
 
-  useEffect(() => { void loadGoals(); }, [loadGoals]);
+  useEffect(() => {
+    setToday(new Date().toISOString().slice(0, 10));
+    void loadGoals();
+  }, [loadGoals]);
 
   const totalTarget = useMemo(() => goals.reduce((sum, goal) => sum + Number(goal.target_amount_kobo), 0), [goals]);
   const totalSaved = useMemo(() => goals.reduce((sum, goal) => sum + Number(goal.saved_amount_kobo), 0), [goals]);
@@ -151,7 +155,7 @@ export default function SavingsPage() {
             <label className="mt-4 block text-sm font-semibold">Goal name<input required minLength={2} maxLength={80} value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2.5 font-normal" placeholder="e.g. December rent" /></label>
             <label className="mt-4 block text-sm font-semibold">Goal type<select value={goalType} onChange={(e) => setGoalType(e.target.value as Goal["goal_type"])} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2.5 font-normal">{types.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label className="mt-4 block text-sm font-semibold">Target amount (₦)<input required type="number" min="100" max="1000000000" step="100" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2.5 font-normal" placeholder="300000" /></label>
-            <label className="mt-4 block text-sm font-semibold">Target date (optional)<input type="date" min={new Date().toISOString().slice(0, 10)} value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2.5 font-normal" /></label>
+            <label className="mt-4 block text-sm font-semibold">Target date (optional)<input type="date" min={today} value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2.5 font-normal" /></label>
             <label className="mt-4 block text-sm font-semibold">Note (optional)<textarea maxLength={300} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2.5 font-normal" placeholder="What are you saving for?" /></label>
             {error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">{error}</p>}
             {notice && <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">{notice}</p>}

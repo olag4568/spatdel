@@ -55,6 +55,15 @@ type KycRow = {
 };
 
 type BankOption = { name: string; code: string };
+type PayoutAccount = {
+  id: string;
+  bank_name: string | null;
+  account_name: string | null;
+  account_number_last4: string | null;
+  status: "pending" | "verified" | "rejected" | "disabled";
+  is_default: boolean;
+  created_at: string;
+};
 
 const supabase = createClient();
 const naira = (kobo: number) =>
@@ -81,6 +90,10 @@ export default function WalletPage() {
   const [accountName, setAccountName] = useState("");
   const [checkingAccount, setCheckingAccount] = useState(false);
   const [bvn, setBvn] = useState("");
+  const [payoutBankCode, setPayoutBankCode] = useState("");
+  const [payoutAccountNumber, setPayoutAccountNumber] = useState("");
+  const [savingPayoutAccount, setSavingPayoutAccount] = useState(false);
+  const [payoutAccounts, setPayoutAccounts] = useState<PayoutAccount[]>([]);
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [paystackConfigured, setPaystackConfigured] = useState(false);
   const [loadingBanks, setLoadingBanks] = useState(false);
@@ -199,6 +212,51 @@ export default function WalletPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/payout-accounts", { cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.error || "Could not load saved bank accounts.");
+        if (active) setPayoutAccounts(Array.isArray(result.accounts) ? result.accounts : []);
+      })
+      .catch((caught) => {
+        // The page's main authentication flow handles signed-out visitors.
+        console.error("Could not load saved payout accounts:", caught);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function savePayoutAccount() {
+    if (!paystackConfigured || !payoutBankCode || !/^\\d{10}$/.test(payoutAccountNumber)) {
+      setError("Choose a bank and enter a valid 10-digit account number.");
+      return;
+    }
+
+    setSavingPayoutAccount(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/payout-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bankCode: payoutBankCode, accountNumber: payoutAccountNumber }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error || "Could not save this bank account.");
+      if (result.account) setPayoutAccounts((current) => [result.account as PayoutAccount, ...current]);
+      setPayoutAccountNumber("");
+      setPayoutBankCode("");
+      setNotice(result.message || "Bank account saved for review.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not save this bank account.");
+    } finally {
+      setSavingPayoutAccount(false);
+    }
+  }
 
   const balances = useMemo(() => {
     const result = new Map<string, number>();
@@ -322,6 +380,58 @@ export default function WalletPage() {
                   Your wallet record has not appeared yet. An admin should check that the wallet migration ran successfully.
                 </article>
               )}
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-1 text-indigo-600" size={23} />
+                <div>
+                  <h2 className="font-bold">My payout bank accounts</h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    Add a bank account in your own name for possible future payouts. SPATDEL stores only the provider recipient reference and the last four digits, not your full account number. Saving an account does not enable withdrawals.
+                  </p>
+                </div>
+              </div>
+
+              {!paystackConfigured && (
+                <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                  Bank linking is not available yet because the SPATDEL admin has not configured the payment provider. You can continue using SPATDEL; no bank details are needed now.
+                </p>
+              )}
+
+              {paystackConfigured && (
+                <form className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]" onSubmit={(event) => { event.preventDefault(); void savePayoutAccount(); }}>
+                  <label className="block text-sm font-semibold">
+                    Bank
+                    <select value={payoutBankCode} onChange={(event) => setPayoutBankCode(event.target.value)} required disabled={loadingBanks || banks.length === 0} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                      <option value="">{loadingBanks ? "Loading banks…" : banks.length ? "Choose your bank" : "Bank list unavailable"}</option>
+                      {banks.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="block text-sm font-semibold">
+                    Account number
+                    <input value={payoutAccountNumber} onChange={(event) => setPayoutAccountNumber(event.target.value.replace(/\\D/g, "").slice(0, 10))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{10}" minLength={10} maxLength={10} placeholder="10-digit account number" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                  </label>
+                  <button type="submit" disabled={savingPayoutAccount || loadingBanks || banks.length === 0 || payoutAccountNumber.length !== 10 || !payoutBankCode} className="self-end rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">
+                    {savingPayoutAccount ? "Saving…" : "Add bank"}
+                  </button>
+                </form>
+              )}
+
+              <div className="mt-5 space-y-3">
+                {payoutAccounts.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-950">No payout bank accounts saved yet.</p>}
+                {payoutAccounts.map((account) => (
+                  <div key={account.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                    <div>
+                      <p className="font-semibold">{account.bank_name || "Bank account"}{account.account_number_last4 ? ` ···· ${account.account_number_last4}` : ""}</p>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{account.account_name || "Account name pending"}</p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${account.status === "verified" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200"}`}>
+                      {account.status.replaceAll("_", " ")}{account.is_default ? " · default" : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </section>
 
             <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">

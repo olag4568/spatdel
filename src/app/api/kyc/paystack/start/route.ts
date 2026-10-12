@@ -90,8 +90,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Your Paystack verification is already in progress. Refresh this page for updates." }, { status: 409 });
   }
 
+  let customerCodeForRecovery = currentKyc.provider === "paystack" ? currentKyc.provider_reference : null;
+
   try {
-    let customerCode = currentKyc.provider === "paystack" ? currentKyc.provider_reference : null;
+    let customerCode = customerCodeForRecovery;
 
     if (!customerCode) {
       const customerResponse = await fetch("https://api.paystack.co/customer", {
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Paystack could not start verification. Please try again later." }, { status: 502 });
       }
       customerCode = String(customerResult.data.customer_code);
+      customerCodeForRecovery = customerCode;
     }
 
     const { error: saveError } = await adminClient
@@ -130,6 +133,7 @@ export async function POST(request: Request) {
       .eq("user_id", user.id);
 
     if (saveError) throw saveError;
+    customerCodeForRecovery = customerCode;
 
     const identifyResponse = await fetch(
       "https://api.paystack.co/customer/" + encodeURIComponent(customerCode) + "/identification",
@@ -176,6 +180,21 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Paystack KYC request failed:", error);
+    // If the provider request fails after the profile was marked pending, avoid leaving it stuck forever.
+    if (customerCodeForRecovery) {
+      const { error: recoveryError } = await adminClient
+        .from("spatdel_kyc_profiles")
+        .update({
+          status: "needs_review",
+          review_note: "The verification request could not be completed. User may retry or contact support.",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id)
+        .eq("provider", "paystack")
+        .eq("provider_reference", customerCodeForRecovery)
+        .eq("status", "pending");
+      if (recoveryError) console.error("Could not recover SPATDEL KYC status:", recoveryError);
+    }
     return NextResponse.json({ error: "Could not start verification. Please try again later." }, { status: 502 });
   }
 }

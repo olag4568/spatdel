@@ -274,8 +274,8 @@ export default function AdminDashboard() {
       setRatings([]);
       setRatingsError("Ratings & reviews could not load. Confirm the SPATDEL ratings migration has been applied.");
     } else {
-      const userById = new Map((allUsers || []).map((item) => [item.id, item]));
-      const propertyById = new Map((propertyData || []).map((item) => [item.id, item]));
+      const userById = new Map((allUsers || []).map((item) => [item.id, item] as const));
+      const propertyById = new Map((propertyData || []).map((item) => [item.id, item] as const));
       setRatings(((ratingData || []) as Omit<AdminRating, "reviewer_name" | "target_label">[]).map((rating) => {
         const reviewer = userById.get(rating.reviewer_id);
         const targetUser = rating.reviewed_user_id ? userById.get(rating.reviewed_user_id) : null;

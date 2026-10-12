@@ -94,6 +94,7 @@ export default function WalletPage() {
   const [payoutAccountNumber, setPayoutAccountNumber] = useState("");
   const [savingPayoutAccount, setSavingPayoutAccount] = useState(false);
   const [payoutAccounts, setPayoutAccounts] = useState<PayoutAccount[]>([]);
+  const [payoutStorageUnavailable, setPayoutStorageUnavailable] = useState(false);
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [paystackConfigured, setPaystackConfigured] = useState(false);
   const [loadingBanks, setLoadingBanks] = useState(false);
@@ -218,11 +219,24 @@ export default function WalletPage() {
     fetch("/api/payout-accounts", { cache: "no-store" })
       .then(async (response) => {
         const result = await response.json();
+        if (
+          response.status === 503 &&
+          result?.error === "Secure bank-account storage is not configured."
+        ) {
+          if (active) {
+            setPayoutStorageUnavailable(true);
+            setPayoutAccounts([]);
+          }
+          return;
+        }
         if (!response.ok) throw new Error(result?.error || "Could not load saved bank accounts.");
-        if (active) setPayoutAccounts(Array.isArray(result.accounts) ? result.accounts : []);
+        if (active) {
+          setPayoutStorageUnavailable(false);
+          setPayoutAccounts(Array.isArray(result.accounts) ? result.accounts : []);
+        }
       })
       .catch((caught) => {
-        // The page's main authentication flow handles signed-out visitors.
+        // Expected setup gaps are shown in the UI; log only unexpected failures.
         console.error("Could not load saved payout accounts:", caught);
       });
     return () => {
@@ -422,7 +436,13 @@ export default function WalletPage() {
               )}
 
               <div className="mt-5 space-y-3">
-                {payoutAccounts.length === 0 && <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-950">No payout bank accounts saved yet.</p>}
+                {payoutStorageUnavailable ? (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                    Secure bank-account storage has not been configured by the SPATDEL admin yet. Bank linking will stay unavailable until server setup is complete.
+                  </p>
+                ) : payoutAccounts.length === 0 ? (
+                  <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-950">No payout bank accounts saved yet.</p>
+                ) : null}
                 {payoutAccounts.map((account) => (
                   <div key={account.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
                     <div>

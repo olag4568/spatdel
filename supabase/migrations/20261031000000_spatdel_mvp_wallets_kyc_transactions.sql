@@ -3,6 +3,24 @@
 -- until an approved payment provider / compliant collection or escrow arrangement is configured.
 -- Apply after the existing profiles, properties, and spatdel_is_admin() foundations.
 
+-- Keep the admin check available even when this migration is applied independently
+-- of the optional community features.
+create or replace function public.spatdel_is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role = 'admin'
+  );
+$;
+
+revoke all on function public.spatdel_is_admin() from public, anon;
+grant execute on function public.spatdel_is_admin() to authenticated;
+
 create table if not exists public.spatdel_wallets (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.profiles(id) on delete restrict,

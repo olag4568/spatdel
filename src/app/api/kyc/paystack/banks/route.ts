@@ -9,23 +9,35 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch("https://api.paystack.co/bank?country=nigeria&perPage=100", {
-      headers: { Authorization: "Bearer " + secretKey },
-      cache: "no-store",
-    });
-    const result = await response.json();
+    const allBanks: Array<{ name: string; code: string; active?: boolean }> = [];
+    let page = 1;
+    let pageCount = 1;
 
-    if (!response.ok || result?.status !== true || !Array.isArray(result?.data)) {
-      return NextResponse.json({ error: "Could not load supported banks from Paystack." }, { status: 502 });
+    do {
+      const url = new URL("https://api.paystack.co/bank");
+      url.searchParams.set("country", "nigeria");
+      url.searchParams.set("perPage", "100");
+      url.searchParams.set("page", String(page));
+      const response = await fetch(url, {
+        headers: { Authorization: "Bearer " + secretKey },
+        cache: "no-store",
+      });
+      const result = await response.json();
+      if (!response.ok || result?.status !== true || !Array.isArray(result?.data)) {
+        return NextResponse.json({ error: "Could not load supported banks from Paystack." }, { status: 502 });
+      }
+      allBanks.push(...result.data);
+      pageCount = Math.min(Number(result?.meta?.pageCount) || 1, 10);
+      page += 1;
+    } while (page <= pageCount);
+
+    const uniqueBanks = new Map<string, { name: string; code: string }>();
+    for (const bank of allBanks) {
+      if (typeof bank.name === "string" && typeof bank.code === "string" && bank.active !== false) {
+        uniqueBanks.set(bank.code, { name: bank.name, code: bank.code });
+      }
     }
-
-    const banks = result.data
-      .filter((bank: { name?: string; code?: string; active?: boolean }) =>
-        typeof bank.name === "string" && typeof bank.code === "string" && bank.active !== false
-      )
-      .map((bank: { name: string; code: string }) => ({ name: bank.name, code: bank.code }))
-      .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name));
-
+    const banks = [...uniqueBanks.values()].sort((a, b) => a.name.localeCompare(b.name));
     return NextResponse.json({ banks }, { headers: { "Cache-Control": "private, max-age=300" } });
   } catch (error) {
     console.error("Paystack bank list request failed:", error);

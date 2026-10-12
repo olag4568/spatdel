@@ -10,7 +10,9 @@ import {
   FileWarning,
   Home,
   LogOut,
+  MessageSquare,
   RefreshCw,
+  Star,
   Search,
   ShieldCheck,
   User,
@@ -84,6 +86,18 @@ type CommunityReport = {
   target_content?: string;
 };
 
+type AdminRating = {
+  id: string;
+  reviewer_id: string;
+  property_id: string | null;
+  reviewed_user_id: string | null;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  reviewer_name: string;
+  target_label: string;
+};
+
 type Property = {
   id: string;
   title: string;
@@ -116,6 +130,9 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [communityReports, setCommunityReports] = useState<CommunityReport[]>([]);
+  const [ratings, setRatings] = useState<AdminRating[]>([]);
+  const [loadingRatings, setLoadingRatings] = useState(false);
+  const [ratingsError, setRatingsError] = useState("");
   const [chairmanApplications, setChairmanApplications] = useState<ChairmanApplication[]>([]);
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [selectedCommunityByApplication, setSelectedCommunityByApplication] = useState<Record<string, string>>({});
@@ -244,6 +261,35 @@ export default function AdminDashboard() {
     }
 
     setLoadingProperties(false);
+
+    setLoadingRatings(true);
+    setRatingsError("");
+    const { data: ratingData, error: ratingQueryError } = await supabase
+      .from("spatdel_ratings")
+      .select("id, reviewer_id, property_id, reviewed_user_id, rating, comment, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (ratingQueryError) {
+      setRatings([]);
+      setRatingsError("Ratings & reviews could not load. Confirm the SPATDEL ratings migration has been applied.");
+    } else {
+      const userById = new Map((allUsers || []).map((item) => [item.id, item]));
+      const propertyById = new Map((propertyData || []).map((item) => [item.id, item]));
+      setRatings(((ratingData || []) as Omit<AdminRating, "reviewer_name" | "target_label">[]).map((rating) => {
+        const reviewer = userById.get(rating.reviewer_id);
+        const targetUser = rating.reviewed_user_id ? userById.get(rating.reviewed_user_id) : null;
+        const targetProperty = rating.property_id ? propertyById.get(rating.property_id) : null;
+        return {
+          ...rating,
+          reviewer_name: reviewer?.full_name || reviewer?.email || "SPATDEL member",
+          target_label: rating.property_id
+            ? targetProperty?.title || "Property listing"
+            : (targetUser?.full_name || targetUser?.email || "SPATDEL member") + (targetUser?.role ? " · " + targetUser.role : ""),
+        };
+      }));
+    }
+    setLoadingRatings(false);
 
     setLoadingReports(true);
     const { data: reportData, error: reportsError } = await supabase
@@ -1656,7 +1702,60 @@ export default function AdminDashboard() {
             title="Community"
             description="Manage Community Pulse and platform activity."
           />
+
+          <AdminModule
+            icon={<Star size={23} />}
+            title="Ratings & reviews"
+            description="Preview member feedback and property ratings."
+            active
+            onClick={() => document.getElementById("ratings-reviews")?.scrollIntoView({ behavior: "smooth" })}
+            actionText="View reviews →"
+          />
         </div>
+
+        {/* RATINGS & REVIEWS */}
+        <section id="ratings-reviews" className="mt-8 overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#102f46]/10 p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><Star size={21} /></div>
+              <div>
+                <h2 className="text-lg font-black text-[#102f46]">Ratings & reviews</h2>
+                <p className="mt-1 text-xs text-[#71808a]">Admin preview of feedback for properties, landlords and agents.</p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-[#f8f7f2] px-4 py-3">
+              <p className="text-xs text-[#71808a]">Reviews loaded</p>
+              <p className="text-xl font-black text-[#102f46]">{ratings.length}</p>
+            </div>
+          </div>
+          <div className="p-5 sm:p-6">
+            {ratingsError && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{ratingsError}</p>}
+            {loadingRatings ? (
+              <p className="py-8 text-center text-sm text-[#71808a]">Loading ratings and reviews…</p>
+            ) : ratings.length === 0 ? (
+              <div className="py-8 text-center">
+                <MessageSquare size={28} className="mx-auto text-[#9aa6ae]" />
+                <p className="mt-3 font-semibold text-[#102f46]">No reviews to preview yet</p>
+                {!ratingsError && <p className="mt-1 text-sm text-[#71808a]">Member and property ratings will appear here when submitted.</p>}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {ratings.map((rating) => (
+                  <article key={rating.id} className="rounded-xl border border-[#102f46]/10 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-bold text-[#102f46]">{rating.target_label}</p>
+                        <p className="mt-1 text-xs text-[#71808a]">By {rating.reviewer_name} · {new Date(rating.created_at).toLocaleDateString("en-NG", { dateStyle: "medium" })}</p>
+                      </div>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700"><Star size={14} fill="currentColor" /> {rating.rating}/5</span>
+                    </div>
+                    {rating.comment && <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#536575]">{rating.comment}</p>}
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* NEXT SYSTEMS */}
         <div className="mt-8 overflow-hidden rounded-2xl bg-[#102f46] p-6 text-white sm:p-8">

@@ -9,6 +9,8 @@ export default function ChooseLocationPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [location, setLocation] = useState("");
+  const [customLocation, setCustomLocation] = useState("");
+  const [useCustomLocation, setUseCustomLocation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -41,7 +43,30 @@ export default function ChooseLocationPage() {
         router.replace("/");
         return;
       }
-      setLocation(profile?.selected_location || "");
+      const savedLocation = profile?.selected_location || "";
+      const knownStreetNames = [
+        "Abaranje Road", "Abass Aminu Street", "Abayomi Jones Street",
+        "Abeokuta Street", "Abiodun Ibidapo Street", "Ade-Ojo Street",
+        "Afurugbin Road", "Aisiku Junction", "Akinremi Street",
+        "Amusa Idowu Street", "Association Avenue", "Awonusi Street",
+        "Bale's Palace Road", "Community Road", "Co-Operative Avenue",
+        "Egbe Road", "Fagbile Road", "Idera Community Way",
+        "Igando Road", "Ijagemo Road", "Ijegun Road",
+        "Ijegun-Ikotun Road", "Ije Ododo Street", "Ilupeju Street",
+        "Isheri Oshun Road", "Irede Street", "Isolo Road",
+        "Leye Street", "Maiyegun Street", "Muse Anidu Street",
+        "New Road", "Obalagbe Lane", "Odo-Eran Street",
+        "Odunewu Street", "Ore-Ofe Road", "Olasanye Street",
+        "Palace Way", "Samuel Adeoti Street", "Sebotimo Street",
+        "Sule Street", "Tijani Alabi Street", "Tijani Awolumate Street",
+        "Yisa Street"
+      ];
+      if (knownStreetNames.some((street) => street.toLowerCase() === savedLocation.toLowerCase())) {
+        setLocation(knownStreetNames.find((street) => street.toLowerCase() === savedLocation.toLowerCase()) || "");
+      } else if (savedLocation) {
+        setUseCustomLocation(true);
+        setCustomLocation(savedLocation);
+      }
       setLoading(false);
     }
     void load();
@@ -50,7 +75,7 @@ export default function ChooseLocationPage() {
 
   async function saveLocation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleanLocation = location.trim();
+    const cleanLocation = (useCustomLocation ? customLocation : location).trim();
     if (!cleanLocation) {
       setError("Enter your street or area in Ijegun.");
       return;
@@ -112,8 +137,56 @@ export default function ChooseLocationPage() {
             </div>
             <div>
               <label htmlFor="selected-location" className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#71808a]">Street or location within Ijegun</label>
-              <input id="selected-location" value={location} onChange={(event) => setLocation(event.target.value)} maxLength={120} required placeholder="Enter your street or area" className="w-full rounded-xl border border-[#102f46]/15 bg-white px-4 py-4 text-sm outline-none transition focus:border-[#087b62] focus:ring-2 focus:ring-[#087b62]/10" />
-              <p className="mt-2 text-xs leading-5 text-[#71808a]">Use the street or area you want SPATDEL to prioritise. You can update this later.</p>
+              <select
+                id="selected-location"
+                value={useCustomLocation ? "__other__" : location}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setError("");
+                  if (value === "__other__") {
+                    setUseCustomLocation(true);
+                    setLocation("");
+                  } else {
+                    setUseCustomLocation(false);
+                    setLocation(value);
+                    setCustomLocation("");
+                  }
+                }}
+                required={!useCustomLocation}
+                className="w-full rounded-xl border border-[#102f46]/15 bg-white px-4 py-4 text-sm outline-none transition focus:border-[#087b62] focus:ring-2 focus:ring-[#087b62]/10"
+              >
+                <option value="">Choose your street or area</option>
+                {[
+                  "Abaranje Road", "Abass Aminu Street", "Abayomi Jones Street",
+                  "Abeokuta Street", "Abiodun Ibidapo Street", "Ade-Ojo Street",
+                  "Afurugbin Road", "Aisiku Junction", "Akinremi Street",
+                  "Amusa Idowu Street", "Association Avenue", "Awonusi Street",
+                  "Bale's Palace Road", "Community Road", "Co-Operative Avenue",
+                  "Egbe Road", "Fagbile Road", "Idera Community Way",
+                  "Igando Road", "Ijagemo Road", "Ijegun Road",
+                  "Ijegun-Ikotun Road", "Ije Ododo Street", "Ilupeju Street",
+                  "Isheri Oshun Road", "Isolo Road", "Irede Street",
+                  "Leye Street", "Maiyegun Street", "Muse Anidu Street",
+                  "New Road", "Obalagbe Lane", "Odo-Eran Street",
+                  "Odunewu Street", "Olasanye Street", "Ore-Ofe Road",
+                  "Palace Way", "Samuel Adeoti Street", "Sebotimo Street",
+                  "Sule Street", "Tijani Alabi Street", "Tijani Awolumate Street",
+                  "Yisa Street"
+                ].map((street) => <option key={street} value={street}>{street}</option>)}
+                <option value="__other__">My street is not listed</option>
+              </select>
+              {useCustomLocation && (
+                <input
+                  id="custom-location"
+                  value={customLocation}
+                  onChange={(event) => setCustomLocation(event.target.value)}
+                  maxLength={120}
+                  required
+                  placeholder="Enter your street or area"
+                  className="mt-3 w-full rounded-xl border border-[#102f46]/15 bg-white px-4 py-4 text-sm outline-none transition focus:border-[#087b62] focus:ring-2 focus:ring-[#087b62]/10"
+                />
+              )}
+              <p className="mt-2 text-xs leading-5 text-[#71808a]">Choose from the listed Ijegun streets. If your street is missing, select “My street is not listed” and enter it.</p>
             </div>
             {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
             <button type="submit" disabled={saving} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#087b62] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#06664f] disabled:cursor-not-allowed disabled:opacity-60">

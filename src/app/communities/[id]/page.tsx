@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CalendarDays, LoaderCircle, MapPin, MessageCircle, Send, ShieldCheck, Users } from "lucide-react";
@@ -17,7 +17,7 @@ type Complaint = { id: string; title: string; description: string; status: strin
 
 type MemberProfile = { id: string; full_name: string | null; username: string | null; role: string | null };
 
-export default function CommunitySpacePage() {
+function CommunitySpaceContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -158,5 +158,14 @@ export default function CommunitySpacePage() {
         </> : <section className="rounded-2xl bg-white p-6"><h1 className="text-xl font-bold">Community unavailable</h1><p className="mt-2 text-sm text-slate-600">Return to the directory and choose a community you belong to.</p><button onClick={() => router.push("/communities")} className="mt-4 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">Back to communities</button></section>}
       </div>
     </main>
+  );
+}
+
+
+export default function CommunitySpacePage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center bg-slate-50"><LoaderCircle className="animate-spin text-emerald-700" size={28} /></main>}>
+      <CommunitySpaceContent />
+    </Suspense>
   );
 }

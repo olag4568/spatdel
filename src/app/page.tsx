@@ -1180,6 +1180,24 @@ export default function Home() {
             )}
 
             <button
+              onClick={() => router.push("/wallet")}
+              className="text-xs font-bold transition hover:text-[#087b62]"
+            >
+              Wallet
+            </button>
+            <button
+              onClick={() => router.push("/wallet#savings-goals")}
+              className="text-xs font-bold transition hover:text-[#087b62]"
+            >
+              Savings
+            </button>
+            <button
+              onClick={goToPostProperty}
+              className="text-xs font-bold transition hover:text-[#087b62]"
+            >
+              Post Property
+            </button>
+            <button
               onClick={() =>
                 scrollToSection("security")
               }
@@ -1256,22 +1274,6 @@ export default function Home() {
                     </button>
 
                     <button
-                      onClick={goToWallet}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
-                    >
-                      <Wallet size={15} />
-                      Wallet & Transactions
-                    </button>
-
-                    <button
-                      onClick={goToPostProperty}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
-                    >
-                      <HomeIcon size={15} />
-                      Post a Property
-                    </button>
-
-                    <button
                       onClick={goToMessages}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
                     >
@@ -1279,7 +1281,6 @@ export default function Home() {
                       Messages
                     </button>
 
-                    <button onClick={() => router.push("/savings")} className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"><Wallet size={15} /> Savings Goals</button>
                     <button onClick={() => router.push("/ratings")} className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"><Star size={15} /> Ratings & Reviews</button>
 
                     {userRole ===
@@ -1390,6 +1391,9 @@ export default function Home() {
                 </button>
               )}
 
+              <button onClick={() => { setMobileMenu(false); router.push("/wallet"); }} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white">Wallet</button>
+              <button onClick={() => { setMobileMenu(false); router.push("/wallet#savings-goals"); }} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white">Savings</button>
+              <button onClick={goToPostProperty} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white">Post Property</button>
               <button
                 onClick={() =>
                   scrollToSection(
@@ -1453,7 +1457,6 @@ export default function Home() {
                     Messages
                   </button>
 
-                  <button onClick={() => router.push("/savings")} className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"><Wallet size={16} /> Savings Goals</button>
                   <button onClick={() => router.push("/ratings")} className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"><Star size={16} /> Ratings & Reviews</button>
 
                   {userRole ===

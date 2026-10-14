@@ -102,7 +102,7 @@ export default function SignupPage() {
     setLoading(false);
 
     if (data.session) {
-      router.push("/");
+      router.push("/choose-location");
       router.refresh();
       return;
     }

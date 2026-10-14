@@ -50,9 +50,24 @@ export default function LoginPage() {
       return;
     }
 
+    const { data: authData } = await supabase.auth.getUser();
+    const { data: profile } = authData.user
+      ? await supabase
+          .from("profiles")
+          .select("role, onboarding_completed")
+          .eq("id", authData.user.id)
+          .maybeSingle()
+      : { data: null };
+
     setLoading(false);
 
-    router.push("/");
+    if (profile?.role === "admin") {
+      router.push("/admin");
+    } else if (!profile?.onboarding_completed) {
+      router.push("/choose-location");
+    } else {
+      router.push("/");
+    }
     router.refresh();
   }
 

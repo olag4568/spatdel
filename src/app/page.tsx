@@ -74,6 +74,7 @@ export default function Home() {
   const [spinning, setSpinning] = useState(false);
   const [wheelRotation, setWheelRotation] = useState(0);
   const [rewardAmount, setRewardAmount] = useState<number | null>(null);
+  const [rewardPointsBalance, setRewardPointsBalance] = useState(0);
   const [rewardSpunAt, setRewardSpunAt] = useState<string | null>(null);
   const [rewardLoading, setRewardLoading] = useState(false);
   const [rewardStatusLoaded, setRewardStatusLoaded] = useState(false);
@@ -257,7 +258,7 @@ export default function Home() {
 
       const { data, error } = await supabase
         .from("tenant_rewards")
-        .select("reward_amount, spun_at")
+        .select("reward_amount, spun_at, points_balance")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -268,6 +269,7 @@ export default function Home() {
         setRewardError("We couldn't load your reward status. Please refresh and try again.");
       } else {
         setRewardAmount(data?.reward_amount ?? null);
+        setRewardPointsBalance(Number(data?.points_balance ?? data?.reward_amount ?? 0));
         setRewardSpunAt(data?.spun_at ?? null);
       }
 
@@ -882,8 +884,9 @@ export default function Home() {
       return;
     }
 
-    if (rewardAmount !== null || rewardSpunAt) {
-      setRewardNotice("You've already used your one-time lifetime spin.");
+    if (rewardSpunAt && Date.now() < new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000) {
+      const nextSpin = new Date(new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+      setRewardNotice("Your weekly spin is on cooldown until " + nextSpin.toLocaleString("en-NG") + ".");
       return;
     }
 
@@ -907,8 +910,9 @@ export default function Home() {
     const result = Array.isArray(data) ? data[0] : data;
     const reward = Number(result?.reward_amount);
     const spunAt = result?.spun_at ?? null;
+    const pointsBalance = Number(result?.points_balance ?? rewardPointsBalance + reward);
 
-    if (![5000, 10000, 15000, 20000, 25000, 30000].includes(reward) || !spunAt) {
+    if (![5000, 10000, 25000, 50000, 75000, 100000].includes(reward) || !spunAt) {
       setRewardError("We couldn't confirm your reward. Refresh and check your reward status.");
       setSpinning(false);
       return;
@@ -916,45 +920,36 @@ export default function Home() {
 
     if (result?.already_spun) {
       setRewardAmount(reward);
+      setRewardPointsBalance(pointsBalance);
       setRewardSpunAt(spunAt);
-      setRewardNotice("Your lifetime spin has already been used. Your discount is saved.");
+      setRewardNotice("Your weekly reward is saved to your points balance.");
       setSpinning(false);
       return;
     }
 
-    const rewards = [5000, 10000, 15000, 20000, 25000, 30000];
+    const rewards = [5000, 10000, 25000, 50000, 75000, 100000];
     const rewardIndex = rewards.indexOf(reward);
     const targetRotation = (360 - rewardIndex * 60) % 360;
     setWheelRotation((current) => current + 1440 + targetRotation);
 
     window.setTimeout(() => {
       setRewardAmount(reward);
+      setRewardPointsBalance(pointsBalance);
       setRewardSpunAt(spunAt);
       setRewardNotice(
-        "Congratulations! You won ₦" + reward.toLocaleString("en-NG") +
-        " off every available house's displayed price."
+        "Congratulations! You won " + reward.toLocaleString("en-NG") +
+        " points (worth about ₦" + (reward / 100).toLocaleString("en-NG") + "). Redeem on eligible SPATDEL purchases only."
       );
       setSpinning(false);
     }, 1900);
   }
 
   function getDisplayedPrice(price: string) {
-    if (!["user", "agent", "chairman"].includes(userRole || "") || !rewardAmount) return price;
-    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
-    if (!match) return price;
-    const originalAmount = Number(match[1].replace(/,/g, ""));
-    if (!Number.isFinite(originalAmount)) return price;
-    const discountedAmount = Math.max(0, originalAmount - rewardAmount);
-    return price.replace(match[0], "₦" + discountedAmount.toLocaleString("en-NG"));
+    return price;
   }
 
-  function getOriginalPrice(price: string) {
-    if (!["user", "agent", "chairman"].includes(userRole || "") || !rewardAmount) return null;
-    const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
-    if (!match) return null;
-    const originalAmount = Number(match[1].replace(/,/g, ""));
-    if (!Number.isFinite(originalAmount)) return null;
-    return "₦" + originalAmount.toLocaleString("en-NG");
+  function getOriginalPrice(_price: string) {
+    return null;
   }
 
   function getUserName() {
@@ -1725,61 +1720,61 @@ export default function Home() {
 
                   <div className="absolute left-1/2 top-[12%] -translate-x-1/2 text-center text-white drop-shadow-md">
                     <div className="text-[16px] font-black leading-none">
-                      ₦5K
+                      5K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      NAIRA OFF
+                      POINTS
                     </div>
                   </div>
 
                   <div className="absolute right-[11%] top-[29%] w-[62px] -rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[15px] font-black leading-none">
-                      ₦10K
+                      10K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      NAIRA OFF
+                      POINTS
                     </div>
                   </div>
 
                   <div className="absolute right-[10%] bottom-[26%] w-[65px] rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[14px] font-black leading-none">
-                      ₦15K
+                      25K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      NAIRA OFF
+                      POINTS
                     </div>
                   </div>
 
                   <div className="absolute bottom-[11%] left-1/2 w-[80px] -translate-x-1/2 text-center text-white drop-shadow-md">
                     <div className="text-[12px] font-black leading-none">
-                      ₦20K
+                      50K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      NAIRA OFF
+                      POINTS
                     </div>
                   </div>
 
                   <div className="absolute bottom-[26%] left-[9%] w-[65px] -rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[15px] font-black leading-none">
-                      ₦25K
+                      75K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      NAIRA OFF
+                      POINTS
                     </div>
                   </div>
 
                   <div className="absolute left-[10%] top-[29%] w-[62px] rotate-[30deg] text-center text-white drop-shadow-md">
                     <div className="text-[15px] font-black leading-none">
-                      ₦30K
+                      100K
                     </div>
 
                     <div className="mt-1 text-[7px] font-bold tracking-wider">
-                      NAIRA OFF
+                      POINTS
                     </div>
                   </div>
 
@@ -1810,7 +1805,7 @@ export default function Home() {
               </div>
 
               <p className="mt-7 text-center text-[10px] text-[#71808a]">
-                One spin per eligible account for life. No daily reset.
+                One spin every 7 days for eligible accounts.
               </p>
               {rewardError && (
                 <p role="alert" className="mt-3 max-w-xs text-center text-xs font-semibold text-red-600">
@@ -1827,21 +1822,17 @@ export default function Home() {
             <div>
               <div className="rounded-xl bg-[#f8f7f2] p-5">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#71808a]">
-                  Your lifetime reward
+                  Your SPATDEL points balance
                 </p>
                 <p className="mt-3 text-3xl font-black text-[#f05a00]">
-                  {rewardAmount !== null
-                    ? "₦" + rewardAmount.toLocaleString("en-NG")
-                    : "Not claimed yet"}
+                  {rewardPointsBalance.toLocaleString("en-NG") + " points"}
                 </p>
                 <p className="mt-2 text-xs leading-5 text-[#71808a]">
-                  {rewardAmount !== null
-                    ? "Your reward has been recorded on your SPATDEL account."
-                    : "Spin once to unlock a discount that stays on your account for life."}
+                  {"Worth about ₦" + (rewardPointsBalance / 100).toLocaleString("en-NG") + ". Redeem on eligible SPATDEL purchases only."}
                 </p>
                 {rewardSpunAt && (
                   <p className="mt-3 text-[10px] font-semibold text-[#087b62]">
-                    Claimed on {new Date(rewardSpunAt).toLocaleDateString("en-NG")}
+                    Last spun on {new Date(rewardSpunAt).toLocaleDateString("en-NG")}
                   </p>
                 )}
                 {rewardLoading && (
@@ -1853,8 +1844,9 @@ export default function Home() {
                 <h3 className="text-sm font-black">How it works</h3>
                 <ol className="mt-3 list-decimal space-y-2 pl-5 text-xs leading-5 text-[#71808a]">
                   <li>Sign in to an eligible SPATDEL User, Agent, or Chairman account.</li>
-                  <li>Your reward is saved to your account.</li>
-                  <li>Your reward remains recorded on your account.</li>
+                  <li>Points are added to your SPATDEL points balance.</li>
+                  <li>100 points are worth ₦1.</li>
+                  <li>Redeem points on eligible purchases only; points cannot be withdrawn as cash.</li>
                 </ol>
               </div>
             </div>

@@ -45,8 +45,8 @@ export function PropertyLocationPicker({
     latitude !== null && longitude !== null ? [latitude, longitude] : null;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#d5dde2]">
-      <MapContainer center={selectedPosition ?? IJEGUN_CENTER} zoom={15} scrollWheelZoom className="h-[300px] w-full">
+    <div className="relative z-0 isolate overflow-hidden rounded-xl border border-[#d5dde2]">
+      <MapContainer center={selectedPosition ?? IJEGUN_CENTER} zoom={15} scrollWheelZoom className="relative z-0 h-[300px] w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -71,8 +71,8 @@ export default function PropertyMap({ properties }: { properties: MappedProperty
   );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#102f46]/10 shadow-2xl">
-      <MapContainer center={IJEGUN_CENTER} zoom={14} scrollWheelZoom className="h-[430px] w-full">
+    <div className="relative z-0 isolate overflow-hidden rounded-2xl border border-[#102f46]/10 shadow-2xl">
+      <MapContainer center={IJEGUN_CENTER} zoom={14} scrollWheelZoom className="relative z-0 h-[430px] w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

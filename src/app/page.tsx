@@ -242,8 +242,8 @@ export default function Home() {
   useEffect(() => {
     let mounted = true;
 
-    async function loadTenantReward() {
-      if (!user || userRole !== "tenant") {
+    async function loadSpinReward() {
+      if (!user || !["user", "agent", "chairman"].includes(userRole || "")) {
         setRewardAmount(null);
         setRewardSpunAt(null);
         setRewardLoading(false);
@@ -275,7 +275,7 @@ export default function Home() {
       setRewardStatusLoaded(true);
     }
 
-    loadTenantReward();
+    loadSpinReward();
 
     return () => {
       mounted = false;
@@ -867,13 +867,13 @@ export default function Home() {
     if (spinning) return;
 
     if (!user) {
-      setRewardError("Sign in with a tenant account to use your one-time spin.");
+      setRewardError("Sign in to use Spin & Earn.");
       router.push("/login?next=/#spin");
       return;
     }
 
-    if (userRole !== "tenant") {
-      setRewardError("Only tenant accounts can claim this reward.");
+    if (!["user", "agent", "chairman"].includes(userRole || "")) {
+      setRewardError("Spin & Earn is available to SPATDEL Users, Agents, and Chairmen only.");
       return;
     }
 
@@ -896,8 +896,8 @@ export default function Home() {
     if (error) {
       console.error("Failed to claim lifetime spin reward:", error);
       setRewardError(
-        error.message?.includes("Only tenant")
-          ? "Only tenant accounts can claim this reward."
+        error.message?.includes("SPATDEL Users, Agents, and Chairmen")
+          ? "Spin & Earn is available to SPATDEL Users, Agents, and Chairmen only."
           : "Your spin could not be saved. Please try again."
       );
       setSpinning(false);
@@ -939,7 +939,7 @@ export default function Home() {
   }
 
   function getDisplayedPrice(price: string) {
-    if (userRole !== "tenant" || !rewardAmount) return price;
+    if (!["user", "agent", "chairman"].includes(userRole || "") || !rewardAmount) return price;
     const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
     if (!match) return price;
     const originalAmount = Number(match[1].replace(/,/g, ""));
@@ -949,7 +949,7 @@ export default function Home() {
   }
 
   function getOriginalPrice(price: string) {
-    if (userRole !== "tenant" || !rewardAmount) return null;
+    if (!["user", "agent", "chairman"].includes(userRole || "") || !rewardAmount) return null;
     const match = price.match(/(?:₦|NGN\s*)?\s*([\d,]+(?:\.\d+)?)/i);
     if (!match) return null;
     const originalAmount = Number(match[1].replace(/,/g, ""));
@@ -1170,7 +1170,7 @@ export default function Home() {
               Community Pulse
             </button>
 
-            {(!user || (!roleLoading && userRole === "tenant")) && (
+            {(!user || (!roleLoading && ["user", "agent", "chairman"].includes(userRole || ""))) && (
               <button
                 onClick={() => scrollToSection("spin")}
                 className="text-xs font-bold transition hover:text-[#087b62]"
@@ -1352,7 +1352,7 @@ export default function Home() {
                 Community Pulse
               </button>
 
-              {(!user || (!roleLoading && userRole === "tenant")) && (
+              {(!user || (!roleLoading && ["user", "agent", "chairman"].includes(userRole || ""))) && (
                 <button
                   onClick={() => scrollToSection("spin")}
                   className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white"
@@ -1660,7 +1660,7 @@ export default function Home() {
       </section>
 
       {/* SPIN & EARN — visible to guests and tenants only */}
-      {(!authLoading && (!user || (!roleLoading && userRole === "tenant"))) && (
+      {(!authLoading && (!user || (!roleLoading && ["user", "agent", "chairman"].includes(userRole || "")))) && (
       <section
         id="spin"
         className="mx-auto max-w-[1280px] px-5 py-24 sm:px-8"
@@ -1672,11 +1672,11 @@ export default function Home() {
             </span>
 
             <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
-              One-Time Rent Discount
+              One-Time SPATDEL Reward
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[#71808a] sm:text-base">
-              Spin once in your lifetime to win a direct naira discount. Your reward is saved to your tenant account and reduces every available house's displayed price.
+              Spin once to claim a lifetime reward. Eligible SPATDEL User, Agent, and Chairman accounts can participate.
             </p>
           </div>
 
@@ -1792,7 +1792,7 @@ export default function Home() {
                     disabled={
                       spinning ||
                       rewardLoading ||
-                      (Boolean(user) && userRole === "tenant" && (rewardAmount !== null || Boolean(rewardSpunAt)))
+                      (Boolean(user) && ["user", "agent", "chairman"].includes(userRole || "") && (rewardAmount !== null || Boolean(rewardSpunAt)))
                     }
                     className="flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#19e58f] bg-[#071b18] text-center text-[10px] font-black text-[#19e58f] shadow-[0_4px_20px_rgba(0,0,0,0.45)] transition duration-200 hover:scale-105 hover:border-white disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-80"
                   >
@@ -1810,7 +1810,7 @@ export default function Home() {
               </div>
 
               <p className="mt-7 text-center text-[10px] text-[#71808a]">
-                One spin per tenant account for life. No daily reset.
+                One spin per eligible account for life. No daily reset.
               </p>
               {rewardError && (
                 <p role="alert" className="mt-3 max-w-xs text-center text-xs font-semibold text-red-600">
@@ -1827,7 +1827,7 @@ export default function Home() {
             <div>
               <div className="rounded-xl bg-[#f8f7f2] p-5">
                 <p className="text-xs font-bold uppercase tracking-wide text-[#71808a]">
-                  Your lifetime rent discount
+                  Your lifetime reward
                 </p>
                 <p className="mt-3 text-3xl font-black text-[#f05a00]">
                   {rewardAmount !== null
@@ -1836,7 +1836,7 @@ export default function Home() {
                 </p>
                 <p className="mt-2 text-xs leading-5 text-[#71808a]">
                   {rewardAmount !== null
-                    ? "This discount is applied to every available house's displayed price while you're signed in as a tenant."
+                    ? "Your reward has been recorded on your SPATDEL account."
                     : "Spin once to unlock a discount that stays on your account for life."}
                 </p>
                 {rewardSpunAt && (
@@ -1852,9 +1852,9 @@ export default function Home() {
               <div className="mt-8 rounded-xl border border-[#102f46]/10 bg-white p-5">
                 <h3 className="text-sm font-black">How it works</h3>
                 <ol className="mt-3 list-decimal space-y-2 pl-5 text-xs leading-5 text-[#71808a]">
-                  <li>Spin once using your tenant account.</li>
-                  <li>Your naira discount is saved permanently.</li>
-                  <li>The discount appears on every available house's displayed price.</li>
+                  <li>Sign in to an eligible SPATDEL User, Agent, or Chairman account.</li>
+                  <li>Your reward is saved to your account.</li>
+                  <li>Your reward remains recorded on your account.</li>
                 </ol>
               </div>
             </div>

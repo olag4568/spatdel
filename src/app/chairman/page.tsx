@@ -18,6 +18,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import SpinEarn from "@/components/SpinEarn";
 
 type ChairmanProfile = {
   id: string;
@@ -194,6 +195,7 @@ export default function ChairmanDashboard() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <SpinEarn />
         <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900 to-emerald-700 p-6 text-white sm:p-8">
           <p className="text-sm font-medium text-emerald-100">CHAIRMAN DASHBOARD</p>
           <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Welcome, {profile?.full_name?.trim() || "Chairman"}</h1>

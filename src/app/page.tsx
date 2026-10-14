@@ -884,8 +884,14 @@ export default function Home() {
       setSpinning(true);
       setRewardError("");
       setRewardNotice("");
-      const targetRotation = (360 - guestRewardIndex * 60) % 360;
-      setWheelRotation((current) => current + 1440 + targetRotation);
+      // Align the selected segment's centre with the fixed top pointer.
+      // Include the current rotation so repeated spins cannot drift to another prize.
+      setWheelRotation((current) => {
+        const currentMod = ((current % 360) + 360) % 360;
+        const extraRotation =
+          (360 - ((currentMod + guestRewardIndex * 60) % 360)) % 360;
+        return current + 1440 + extraRotation;
+      });
       window.setTimeout(() => {
         setGuestClaimPoints(guestReward);
         setSpinning(false);
@@ -948,8 +954,14 @@ export default function Home() {
 
     const rewards = [5000, 10000, 25000, 50000, 75000, 100000];
     const rewardIndex = rewards.indexOf(reward);
-    const targetRotation = (360 - rewardIndex * 60) % 360;
-    setWheelRotation((current) => current + 1440 + targetRotation);
+    // Align the confirmed reward segment with the fixed top pointer.
+    // Account for the wheel's existing rotation to prevent mismatches on later spins.
+    setWheelRotation((current) => {
+      const currentMod = ((current % 360) + 360) % 360;
+      const extraRotation =
+        (360 - ((currentMod + rewardIndex * 60) % 360)) % 360;
+      return current + 1440 + extraRotation;
+    });
 
     window.setTimeout(() => {
       setRewardAmount(reward);

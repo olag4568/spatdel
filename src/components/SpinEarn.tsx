@@ -62,7 +62,6 @@ export default function SpinEarn() {
     if (!canSpin) return;
     setError("");
     setSpinning(true);
-    setTurn((current) => current + 1440 + Math.floor(Math.random() * 360));
     const { data, error: spinError } = await supabase.rpc("claim_tenant_spin_reward");
     if (spinError) {
       setSpinning(false);
@@ -72,12 +71,29 @@ export default function SpinEarn() {
       return;
     }
     const result = Array.isArray(data) ? data[0] : data;
+    const wonReward = Number(result?.reward_amount ?? 0);
+    const rewardIndex = rewards.indexOf(wonReward);
+    if (rewardIndex < 0) {
+      setSpinning(false);
+      setError("We couldn't confirm the prize selected by the wheel. Please refresh and check your points.");
+      return;
+    }
+
+    // The fixed pointer is at 12 o'clock. Each prize label's centre is
+    // index * 60 degrees clockwise from the top, so rotate that exact
+    // segment to the pointer, including the wheel's existing rotation.
+    setTurn((current) => {
+      const currentMod = ((current % 360) + 360) % 360;
+      const extraRotation = (360 - ((currentMod + rewardIndex * 60) % 360)) % 360;
+      return current + 1440 + extraRotation;
+    });
+
     window.setTimeout(() => {
       setSpinning(false);
-      setReward(Number(result?.reward_amount ?? 0));
+      setReward(wonReward);
       setSpunAt(result?.spun_at ?? new Date().toISOString());
-      setPointsBalance(Number(result?.points_balance ?? pointsBalance + Number(result?.reward_amount ?? 0)));
-    }, 2200);
+      setPointsBalance(Number(result?.points_balance ?? pointsBalance + wonReward));
+    }, 2250);
   }
 
   return (

@@ -1577,31 +1577,15 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-2xl">
-              <div className="relative h-[430px] overflow-hidden">
-                <iframe
-                  title="Live interactive map of Ijegun Community Road, Lagos"
-                  src="https://maps.google.com/maps?q=Ijegun%20Community%20Road%2C%20Lagos%2C%20Nigeria&t=&z=15&ie=UTF8&iwloc=&output=embed"
-                  className="h-full w-full border-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  allowFullScreen
-                />
-                <div className="pointer-events-none absolute left-4 top-4 max-w-[calc(100%-2rem)] rounded-xl border border-white/70 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#087b62]">Explore the community</p>
-                  <p className="mt-1 text-sm font-black text-[#102f46]">Ijegun Community Road</p>
-                  <p className="mt-1 text-[10px] text-[#63717a]">Lagos, Nigeria · Move and zoom the map</p>
-                </div>
-                <a href="https://www.google.com/maps/search/?api=1&query=Ijegun+Community+Road%2C+Lagos%2C+Nigeria" target="_blank" rel="noreferrer" className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-lg bg-[#f05a00] px-4 py-3 text-xs font-black text-white shadow-lg transition hover:bg-[#d94e00]">
-                  Open full map <ArrowRight size={14} />
-                </a>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-t border-[#102f46]/10 bg-white px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#102f46]"><MapPin size={16} className="text-[#f05a00]" /> Ijegun, Lagos</div>
-                <span className="text-[10px] text-[#71808a]">Interactive live map</span>
-              </div>
-            </div>
+          <div className="overflow-hidden rounded-2xl border border-[#102f46]/10 shadow-2xl">
+            <iframe
+              title="Map of Ijegun Community Road, Lagos"
+              src="https://maps.google.com/maps?q=Ijegun%20Community%20Road%2C%20Lagos%2C%20Nigeria&t=&z=15&ie=UTF8&iwloc=&output=embed"
+              className="h-[430px] w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
           </div>
         </div>
       </section>

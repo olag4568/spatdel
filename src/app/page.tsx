@@ -1361,9 +1361,6 @@ export default function Home() {
                 </button>
               )}
 
-              <button onClick={() => { setMobileMenu(false); router.push("/wallet"); }} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white">Wallet</button>
-              <button onClick={() => { setMobileMenu(false); router.push("/wallet#savings-goals"); }} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white">Savings</button>
-              <button onClick={goToPostProperty} className="block w-full rounded-lg px-3 py-3 text-left text-sm font-bold hover:bg-white">Post Property</button>
               <button
                 onClick={() =>
                   scrollToSection(

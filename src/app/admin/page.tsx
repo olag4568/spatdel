@@ -2069,6 +2069,8 @@ function RoleBadge({ role, assigned = true }: { role: UserRole; assigned?: boole
       "bg-orange-50 text-orange-700 border-orange-100",
     landlord:
       "bg-purple-50 text-purple-700 border-purple-100",
+    chairman:
+      "bg-teal-50 text-teal-700 border-teal-100",
     admin:
       "bg-[#e4f5ee] text-[#087b62] border-[#087b62]/20",
   };

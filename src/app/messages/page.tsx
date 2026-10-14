@@ -76,7 +76,7 @@ function roleLabel(role: Role) {
   return "SPATDEL member";
 }
 
-function displayName(profile: Profile | undefined) {
+function displayName(profile: Profile | null | undefined) {
   const username = profile?.username?.trim().replace(/^@/, "");
   return username ? `@${username}` : profile?.full_name?.trim() || roleLabel(profile?.role ?? "member");
 }

@@ -1179,25 +1179,7 @@ export default function Home() {
               </button>
             )}
 
-            <button
-              onClick={() => router.push("/wallet")}
-              className="text-xs font-bold transition hover:text-[#087b62]"
-            >
-              Wallet
-            </button>
-            <button
-              onClick={() => router.push("/wallet#savings-goals")}
-              className="text-xs font-bold transition hover:text-[#087b62]"
-            >
-              Savings
-            </button>
-            <button
-              onClick={goToPostProperty}
-              className="text-xs font-bold transition hover:text-[#087b62]"
-            >
-              Post Property
-            </button>
-            <button
+<button
               onClick={() =>
                 scrollToSection("security")
               }
@@ -1263,17 +1245,7 @@ export default function Home() {
                       My Profile
                     </button>
 
-                    <button
-                      onClick={goToAccount}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
-                    >
-                      <LayoutDashboard
-                        size={15}
-                      />
-                      My Dashboard
-                    </button>
-
-                    <button
+<button
                       onClick={goToMessages}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"
                     >
@@ -1281,9 +1253,7 @@ export default function Home() {
                       Messages
                     </button>
 
-                    <button onClick={() => router.push("/ratings")} className="flex w-full items-center gap-3 px-4 py-3 text-left text-xs font-bold hover:bg-[#f8f7f2]"><Star size={15} /> Ratings & Reviews</button>
-
-                    {userRole ===
+{userRole ===
                       "admin" && (
                       <button
                         onClick={
@@ -1439,17 +1409,7 @@ export default function Home() {
                     My Profile
                   </button>
 
-                  <button
-                    onClick={goToAccount}
-                    className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"
-                  >
-                    <LayoutDashboard
-                      size={16}
-                    />
-                    My Dashboard
-                  </button>
-
-                  <button
+<button
                     onClick={goToMessages}
                     className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"
                   >
@@ -1457,9 +1417,7 @@ export default function Home() {
                     Messages
                   </button>
 
-                  <button onClick={() => router.push("/ratings")} className="flex w-full items-center gap-3 rounded-lg bg-white px-4 py-3 text-left text-xs font-bold"><Star size={16} /> Ratings & Reviews</button>
-
-                  {userRole ===
+{userRole ===
                     "admin" && (
                     <button
                       onClick={
@@ -1668,7 +1626,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-3 px-5 py-5 sm:grid-cols-4 sm:gap-4 sm:px-8">
           <button
             type="button"
-            onClick={() => router.push("/wallet#savings-goals")}
+            onClick={() => router.push("/savings")}
             className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#e4f5ee]"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e4f5ee] text-[#087b62]"><Wallet size={20} /></span>

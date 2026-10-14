@@ -1588,41 +1588,1550 @@ export default function Home() {
                   referrerPolicy="no-referrer-when-downgrade"
                   allowFullScreen
                 />
-
                 <div className="pointer-events-none absolute left-4 top-4 max-w-[calc(100%-2rem)] rounded-xl border border-white/70 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#087b62]">
-                    Explore the community
-                  </p>
-                  <p className="mt-1 text-sm font-black text-[#102f46]">
-                    Ijegun Community Road
-                  </p>
-                  <p className="mt-1 text-[10px] text-[#63717a]">
-                    Lagos, Nigeria · Move and zoom the map
-                  </p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#087b62]">Explore the community</p>
+                  <p className="mt-1 text-sm font-black text-[#102f46]">Ijegun Community Road</p>
+                  <p className="mt-1 text-[10px] text-[#63717a]">Lagos, Nigeria · Move and zoom the map</p>
                 </div>
-
-                <a
-                  href="https://www.google.com/maps/search/?api=1&query=Ijegun+Community+Road%2C+Lagos%2C+Nigeria"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-lg bg-[#f05a00] px-4 py-3 text-xs font-black text-white shadow-lg transition hover:bg-[#d94e00]"
-                >
-                  Open full map
-                  <ArrowRight size={14} />
+                <a href="https://www.google.com/maps/search/?api=1&query=Ijegun+Community+Road%2C+Lagos%2C+Nigeria" target="_blank" rel="noreferrer" className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-lg bg-[#f05a00] px-4 py-3 text-xs font-black text-white shadow-lg transition hover:bg-[#d94e00]">
+                  Open full map <ArrowRight size={14} />
                 </a>
               </div>
               <div className="flex items-center justify-between gap-3 border-t border-[#102f46]/10 bg-white px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#102f46]">
-                  <MapPin size={16} className="text-[#f05a00]" />
-                  Ijegun, Lagos
+                <div className="flex items-center gap-2 text-xs font-bold text-[#102f46]"><MapPin size={16} className="text-[#f05a00]" /> Ijegun, Lagos</div>
+                <span className="text-[10px] text-[#71808a]">Interactive live map</span>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      {/* QUICK ACCESS — replaces the old trust strip; main navigation stays unchanged */}
+      <section className="border-y border-[#102f46]/10 bg-white">
+        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-3 px-5 py-5 sm:grid-cols-4 sm:gap-4 sm:px-8">
+          <button
+            type="button"
+            onClick={() => router.push("/savings")}
+            className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#e4f5ee]"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e4f5ee] text-[#087b62]"><Wallet size={20} /></span>
+            <span><span className="block text-xs font-bold text-[#102f46]">Savings</span><span className="mt-1 block text-[9px] text-[#71808a]">Your savings goals</span></span>
+          </button>
+          <button
+            type="button"
+            onClick={goToWallet}
+            className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#e4f5ee]"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e4f5ee] text-[#087b62]"><Wallet size={20} /></span>
+            <span><span className="block text-xs font-bold text-[#102f46]">Wallet</span><span className="mt-1 block text-[9px] text-[#71808a]">Balance and transactions</span></span>
+          </button>
+          {userRole !== "admin" && (
+            <button
+              type="button"
+              onClick={goToPostProperty}
+              className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#f05a00]/40 hover:bg-[#fff0e8]"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff0e8] text-[#f05a00]"><HomeIcon size={20} /></span>
+              <span><span className="block text-xs font-bold text-[#102f46]">Post Property</span><span className="mt-1 block text-[9px] text-[#71808a]">Create a property listing</span></span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={goToAccount}
+            disabled={!user && authLoading}
+            className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#e4f5ee] disabled:opacity-60"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef5f1] text-[#102f46]"><User size={20} /></span>
+            <span><span className="block text-xs font-bold text-[#102f46]">Dashboard / Profile</span><span className="mt-1 block text-[9px] text-[#71808a]">{user ? "Open your account" : "Sign in to your profile"}</span></span>
+          </button>
+        </div>
+      </section>
+
+      {/* SPIN & EARN — visible to guests and eligible non-admin roles */}
+      {(!authLoading && (!user || (!roleLoading && ["user", "agent", "chairman"].includes(userRole || "")))) && (
+      <section
+        id="spin"
+        className="mx-auto max-w-[1280px] px-5 py-24 sm:px-8"
+      >
+        <div className="rounded-2xl border border-[#19b87a]/50 bg-white p-6 shadow-sm sm:p-10">
+          <div className="mb-10 max-w-[750px]">
+            <span className="rounded-md bg-[#fff0e8] px-3 py-1 text-[9px] font-bold uppercase tracking-wide text-[#f05a00]">
+              Lagos Verified Rewards
+            </span>
+
+            <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
+              Weekly SPATDEL Reward
+            </h2>
+
+            <p className="mt-3 text-sm leading-6 text-[#71808a] sm:text-base">
+              Spin every 7 days to earn SPATDEL points. Higher-value prizes are rarer. Eligible SPATDEL User, Agent, and Chairman accounts can participate.
+            </p>
+          </div>
+
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="flex flex-col items-center">
+              <div className="relative h-72 w-72 sm:h-80 sm:w-80">
+                <div className="absolute left-1/2 top-[-16px] z-40 -translate-x-1/2">
+                  <div className="relative">
+                    <div className="h-0 w-0 border-l-[15px] border-r-[15px] border-t-[34px] border-l-transparent border-r-transparent border-t-[#102f46] drop-shadow-lg" />
+
+                    <div className="absolute left-1/2 top-[2px] h-2 w-2 -translate-x-1/2 rounded-full bg-[#f05a00]" />
+                  </div>
                 </div>
-                <span className="text-[10px] text-[#71808a]">
-                  Interactive live map
-                </span>
+
+                <div
+                  className="absolute inset-0 rounded-full border-[7px] border-[#102f46] p-2 shadow-[0_12px_40px_rgba(16,47,70,0.25)]"
+                  style={{
+                    transform: `rotate(${wheelRotation}deg)`,
+                    transition: spinning
+                      ? "transform 1.8s cubic-bezier(0.12, 0.8, 0.18, 1)"
+                      : "none",
+                    willChange: "transform",
+                  }}
+                >
+                  <div
+                    className="absolute inset-2 rounded-full"
+                    style={{
+                      background: `
+                        repeating-conic-gradient(
+                          from -30deg,
+                          rgba(255,255,255,0.9) 0deg 1.2deg,
+                          transparent 1.2deg 60deg
+                        ),
+                        conic-gradient(
+                          from -30deg,
+                          #087b62 0deg 60deg,
+                          #f05a00 60deg 120deg,
+                          #102f46 120deg 180deg,
+                          #19b87a 180deg 240deg,
+                          #f05a00 240deg 300deg,
+                          #155e75 300deg 360deg
+                        )
+                      `,
+                    }}
+                  />
+
+                  <div className="absolute left-1/2 top-[12%] -translate-x-1/2 text-center text-white drop-shadow-md">
+                    <div className="text-[16px] font-black leading-none">
+                      5K
+                    </div>
+
+                    <div className="mt-1 text-[7px] font-bold tracking-wider">
+                      POINTS
+                    </div>
+                  </div>
+
+                  <div className="absolute right-[11%] top-[29%] w-[62px] -rotate-[30deg] text-center text-white drop-shadow-md">
+                    <div className="text-[15px] font-black leading-none">
+                      10K
+                    </div>
+
+                    <div className="mt-1 text-[7px] font-bold tracking-wider">
+                      POINTS
+                    </div>
+                  </div>
+
+                  <div className="absolute right-[10%] bottom-[26%] w-[65px] rotate-[30deg] text-center text-white drop-shadow-md">
+                    <div className="text-[14px] font-black leading-none">
+                      25K
+                    </div>
+
+                    <div className="mt-1 text-[7px] font-bold tracking-wider">
+                      POINTS
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-[11%] left-1/2 w-[80px] -translate-x-1/2 text-center text-white drop-shadow-md">
+                    <div className="text-[12px] font-black leading-none">
+                      50K
+                    </div>
+
+                    <div className="mt-1 text-[7px] font-bold tracking-wider">
+                      POINTS
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-[26%] left-[9%] w-[65px] -rotate-[30deg] text-center text-white drop-shadow-md">
+                    <div className="text-[15px] font-black leading-none">
+                      75K
+                    </div>
+
+                    <div className="mt-1 text-[7px] font-bold tracking-wider">
+                      POINTS
+                    </div>
+                  </div>
+
+                  <div className="absolute left-[10%] top-[29%] w-[62px] rotate-[30deg] text-center text-white drop-shadow-md">
+                    <div className="text-[15px] font-black leading-none">
+                      100K
+                    </div>
+
+                    <div className="mt-1 text-[7px] font-bold tracking-wider">
+                      POINTS
+                    </div>
+                  </div>
+
+                  <div className="absolute left-1/2 top-1/2 h-[106px] w-[106px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[5px] border-white/90 bg-[#071b18] shadow-[0_5px_20px_rgba(0,0,0,0.35)]" />
+                </div>
+
+                <div className="absolute inset-0 z-30 flex items-center justify-center">
+                  <button
+                    onClick={spinWheel}
+                    disabled={
+                      spinning ||
+                      rewardLoading ||
+                      (Boolean(user) && ["user", "agent", "chairman"].includes(userRole || "") && (rewardSpunAt !== null && rewardSpunAt !== undefined && Date.now() < new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000))
+                    }
+                    className="flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#19e58f] bg-[#071b18] text-center text-[10px] font-black text-[#19e58f] shadow-[0_4px_20px_rgba(0,0,0,0.45)] transition duration-200 hover:scale-105 hover:border-white disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-80"
+                  >
+                    {spinning
+                      ? "SPINNING..."
+                      : !user
+                        ? "SPIN NOW"
+                        : rewardSpunAt && Date.now() < new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000
+                          ? "WAIT"
+                          : rewardLoading || !rewardStatusLoaded
+                            ? "CHECKING"
+                            : "SPIN NOW"}
+                  </button>
+                </div>
+              </div>
+
+              <p className="mt-7 text-center text-[10px] text-[#71808a]">
+                One spin every 7 days for eligible accounts.
+              </p>
+              {rewardError && (
+                <p role="alert" className="mt-3 max-w-xs text-center text-xs font-semibold text-red-600">
+                  {rewardError}
+                </p>
+              )}
+              {rewardNotice && (
+                <p role="status" className="mt-3 max-w-xs text-center text-xs font-semibold text-[#087b62]">
+                  {rewardNotice}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="rounded-xl bg-[#f8f7f2] p-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-[#71808a]">
+                  Your SPATDEL points balance
+                </p>
+                <p className="mt-3 text-3xl font-black text-[#f05a00]">
+                  {rewardPointsBalance.toLocaleString("en-NG") + " points"}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-[#71808a]">
+                  {"Worth about ₦" + (rewardPointsBalance / 100).toLocaleString("en-NG") + ". Redeem on eligible SPATDEL purchases only."}
+                </p>
+                {rewardSpunAt && (
+                  <p className="mt-3 text-[10px] font-semibold text-[#087b62]">
+                    Last spun on {new Date(rewardSpunAt).toLocaleDateString("en-NG")}
+                  </p>
+                )}
+                {rewardLoading && (
+                  <p className="mt-3 text-[10px] text-[#71808a]">Loading your reward...</p>
+                )}
+              </div>
+
+              <div className="mt-8 rounded-xl border border-[#102f46]/10 bg-white p-5">
+                <h3 className="text-sm font-black">How it works</h3>
+                <ol className="mt-3 list-decimal space-y-2 pl-5 text-xs leading-5 text-[#71808a]">
+                  <li>Sign in to an eligible SPATDEL User, Agent, or Chairman account.</li>
+                  <li>Points are added to your SPATDEL points balance.</li>
+                  <li>100 points are worth ₦1.</li>
+                  <li>Redeem points on eligible purchases only; points cannot be withdrawn as cash.</li>
+                </ol>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* QUICK ACCESS
+      )}
+      
+      {guestClaimPoints !== null && !user && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#071b18]/70 p-4" role="dialog" aria-modal="true" aria-labelledby="guest-reward-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-7 text-center shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f8ef] text-3xl">🎉</div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-[#087b62]">You landed on</p>
+            <h2 id="guest-reward-title" className="mt-2 text-4xl font-black text-[#102f46]">{guestClaimPoints.toLocaleString("en-NG")} points</h2>
+            <p className="mt-3 text-sm leading-6 text-[#71808a]">Create your SPATDEL account to claim this reward and add it to your points balance. 100 points are worth about ₦1 and can be used on eligible SPATDEL purchases only.</p>
+            <button onClick={() => router.push("/signup?next=%2F%23spin")} className="mt-6 w-full rounded-xl bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#065f4b]">Sign up to claim</button>
+            <button onClick={() => setGuestClaimPoints(null)} className="mt-3 w-full rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[#102f46] hover:bg-slate-50">Maybe later</button>
+            <p className="mt-3 text-[10px] leading-4 text-[#71808a]">Your guest spin is a preview. The reward is only saved after you sign in to an eligible account and claim it.</p>
+          </div>
+        </div>
+      )}
+
+      {/* PROPERTIES */}
+      <section
+        id="homes"
+        className="mx-auto max-w-[1280px] px-5 pb-24 sm:px-8"
+      >
+        <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+          <div>
+            <span className="rounded-md bg-[#fff0e8] px-3 py-1 text-[9px] font-bold uppercase tracking-wide text-[#f05a00]">
+              Verified Properties
+            </span>
+
+            <h2 className="mt-5 text-3xl font-black sm:text-4xl">
+              Verified Homes in Lagos
+            </h2>
+
+            <p className="mt-3 text-sm text-[#71808a]">
+              Real homes. Real information. Verified before
+              you rent.
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              scrollToSection(
+                "homes"
+              )
+            }
+            className="flex items-center gap-2 text-sm font-bold text-[#087b62]"
+          >
+            View all homes
+            <ArrowRight size={16} />
+          </button>
+        </div>
+
+        {saveError && (
+          <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            <span>
+              {saveError}
+            </span>
+
+            <button
+              onClick={() =>
+                setSaveError("")
+              }
+              className="font-black"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {propertiesLoading ? (
+            <div className="col-span-full rounded-xl border border-[#102f46]/10 bg-white p-10 text-center">
+              <p className="text-sm font-bold">
+                Loading verified homes...
+              </p>
+
+              <p className="mt-2 text-xs text-[#71808a]">
+                Getting the latest properties from SPATDEL.
+              </p>
+            </div>
+          ) : propertiesError ? (
+            <div className="col-span-full rounded-xl border border-red-200 bg-white p-10 text-center">
+              <p className="text-sm font-bold text-red-600">
+                {propertiesError}
+              </p>
+            </div>
+          ) : properties.length ===
+            0 ? (
+            <div className="col-span-full rounded-xl border border-[#102f46]/10 bg-white p-10 text-center">
+              <p className="text-sm font-bold">
+                No properties available yet.
+              </p>
+
+              <p className="mt-2 text-xs text-[#71808a]">
+                New verified homes will appear here.
+              </p>
+            </div>
+          ) : (
+            properties.map(
+              (property) => {
+                const saved =
+                  isPropertySaved(
+                    property.id
+                  );
+
+                const saving =
+                  savingPropertyId ===
+                  property.id;
+
+                return (
+                  <article
+                    key={
+                      property.id
+                    }
+                    className="group overflow-hidden rounded-xl border border-[#102f46]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={
+                          property.image
+                        }
+                        alt={
+                          property.title
+                        }
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+
+                      <span
+                        className={`absolute left-3 top-3 rounded-md px-2 py-1 text-[8px] font-black text-white ${
+                          property.verified
+                            ? "bg-[#087b62]"
+                            : "bg-[#71808a]"
+                        }`}
+                      >
+                        {property.verified
+                          ? "VERIFIED"
+                          : "PENDING"}
+                      </span>
+
+                      <span className="absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-1 text-[8px] font-bold text-white backdrop-blur">
+                        {property.listing_purpose === "sale" ? "FOR SALE" : property.listing_purpose === "rent" ? "FOR RENT" : property.type || `${property.beds} BED`}
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          toggleSaveProperty(
+                            property
+                          )
+                        }
+                        disabled={
+                          saving
+                        }
+                        aria-label={
+                          saved
+                            ? "Remove saved property"
+                            : "Save property"
+                        }
+                        className={`absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur transition ${
+                          saved
+                            ? "bg-[#f05a00] text-white"
+                            : "bg-white/90 text-[#102f46] hover:bg-white"
+                        } ${
+                          saving
+                            ? "cursor-not-allowed opacity-60"
+                            : ""
+                        }`}
+                      >
+                        <Heart
+                          size={
+                            17
+                          }
+                          fill={
+                            saved
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      </button>
+                    </div>
+
+                    <div className="p-4">
+                      <h3 className="text-sm font-black leading-5">
+                        {
+                          property.title
+                        }
+                      </h3>
+
+                      <p className="mt-1 flex items-center gap-1 text-[10px] text-[#71808a]">
+                        <MapPin
+                          size={
+                            11
+                          }
+                        />
+                        {property.location ||
+                          "Lagos"}
+                      </p>
+
+                      <p className="mt-4 text-lg font-black text-[#087b62]">
+                        {
+                          getDisplayedPrice(property.price)
+                        }
+                        {getOriginalPrice(property.price) && (
+                          <span className="ml-2 text-xs font-semibold text-[#9aa4aa] line-through decoration-2">
+                            {getOriginalPrice(property.price)}
+                          </span>
+                        )}
+
+                        <span className="text-[9px] font-medium text-[#71808a]">
+                          {" "}
+                          / year
+                        </span>
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-[9px]">
+                        <div className="rounded-md bg-[#e4f5ee] px-2 py-2 text-[#087b62]">
+                          <span className="block text-[#71808a]">
+                            Flood Risk
+                          </span>
+
+                          <b>
+                            {property.flood_risk ||
+                              property.flood}
+                          </b>
+                        </div>
+
+                        <div className="rounded-md bg-[#fff0e8] px-2 py-2 text-[#f05a00]">
+                          <span className="block text-[#71808a]">
+                            Power
+                          </span>
+
+                          <b>
+                            {property.power_hours ||
+                              property.power}
+                          </b>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          setSelectedProperty(
+                            property
+                          )
+                        }
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#102f46] py-3 text-xs font-bold text-white transition hover:bg-[#174763]"
+                      >
+                        View Property
+                        <ArrowRight
+                          size={
+                            14
+                          }
+                        />
+                      </button>
+                    </div>
+                  </article>
+                );
+              }
+            )
+          )}
+        </div>
+      </section>
+
+      {/* COMMUNITY */}
+      <section
+        id="community"
+        className="bg-[#eef5f1]"
+      >
+        <div className="mx-auto max-w-[1280px] px-5 py-24 sm:px-8">
+          <div className="max-w-[680px]">
+            <span className="rounded-md bg-white px-3 py-1 text-[9px] font-bold uppercase tracking-wide text-[#087b62]">
+              Community Pulse
+            </span>
+
+            <h2 className="mt-5 text-3xl font-black sm:text-4xl">
+              Know what&apos;s happening around your home.
+            </h2>
+
+            <p className="mt-4 text-sm leading-7 text-[#63717a] sm:text-base">
+              SPATDEL brings local community intelligence
+              together so you can understand the area before
+              making a housing decision.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <Zap
+                className="text-[#f05a00]"
+                size={28}
+              />
+
+              <h3 className="mt-5 font-black">
+                Electricity
+              </h3>
+
+              <p className="mt-2 text-xs leading-6 text-[#71808a]">
+                See community reports about power reliability
+                and outages.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <MapPin
+                className="text-[#087b62]"
+                size={28}
+              />
+
+              <h3 className="mt-5 font-black">
+                Flooding
+              </h3>
+
+              <p className="mt-2 text-xs leading-6 text-[#71808a]">
+                Understand flood conditions around properties
+                and roads.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <ShieldCheck
+                className="text-[#f05a00]"
+                size={28}
+              />
+
+              <h3 className="mt-5 font-black">
+                Security
+              </h3>
+
+              <p className="mt-2 text-xs leading-6 text-[#71808a]">
+                Access community information and verified
+                reports.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <Star
+                className="text-[#087b62]"
+                size={28}
+              />
+
+              <h3 className="mt-5 font-black">
+                Local Services
+              </h3>
+
+              <p className="mt-2 text-xs leading-6 text-[#71808a]">
+                Discover useful services and facilities around
+                your community.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-2xl bg-[#102f46] p-6 text-white sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-8">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-wide text-[#19e58f]">
+                <MessageSquare size={13} /> Join the conversation
+              </span>
+              <h3 className="mt-4 text-xl font-black sm:text-2xl">
+                Your community has a lot to say.
+              </h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">
+                Publish posts, reply to housing questions, or chat live with tenants, agents and landlords.
+              </p>
+            </div>
+            <div className="mt-5 flex shrink-0 flex-wrap gap-3 sm:mt-0">
+              <button
+                onClick={() => router.push("/community")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#19e58f] px-5 py-3 text-sm font-black text-[#071b18] transition hover:-translate-y-0.5"
+              >
+                Open Community Pulse <ArrowRight size={16} />
+              </button>
+              <button
+                onClick={() => router.push("/communities")}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                Find your community <Users size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECURITY */}
+      <section
+        id="security"
+        className="bg-[#102f46] text-white"
+      >
+        <div className="mx-auto max-w-[1280px] px-5 py-24 sm:px-8">
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div>
+              <span className="rounded-md bg-white/10 px-3 py-1 text-[9px] font-bold uppercase tracking-wide text-[#19e58f]">
+                Escrow Security
+              </span>
+
+              <h2 className="mt-6 text-3xl font-black sm:text-4xl">
+                Your rent should never depend on trust alone.
+              </h2>
+
+              <p className="mt-5 text-sm leading-7 text-white/60 sm:text-base">
+                Our payment architecture is designed to make
+                housing transactions safer and more transparent.
+              </p>
+
+              <button
+                onClick={goToLogin}
+                className="mt-8 flex items-center gap-2 rounded-lg bg-[#19e58f] px-6 py-4 text-sm font-black text-[#071b18] transition hover:-translate-y-0.5"
+              >
+                Learn About Security
+                <ArrowRight
+                  size={16}
+                />
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                <ShieldCheck
+                  className="text-[#19e58f]"
+                  size={30}
+                />
+
+                <h3 className="mt-5 font-black">
+                  Verified Identity
+                </h3>
+
+                <p className="mt-2 text-xs leading-6 text-white/50">
+                  Account and property verification help reduce
+                  fraudulent listings.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                <Check
+                  className="text-[#19e58f]"
+                  size={30}
+                />
+
+                <h3 className="mt-5 font-black">
+                  Transparent Payments
+                </h3>
+
+                <p className="mt-2 text-xs leading-6 text-white/50">
+                  Keep transaction records organized and easy
+                  to understand.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                <Zap
+                  className="text-[#19e58f]"
+                  size={30}
+                />
+
+                <h3 className="mt-5 font-black">
+                  Community Reports
+                </h3>
+
+                <p className="mt-2 text-xs leading-6 text-white/50">
+                  Housing decisions can include real local
+                  information.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                <Star
+                  className="text-[#19e58f]"
+                  size={30}
+                />
+
+                <h3 className="mt-5 font-black">
+                  Trusted Platform
+                </h3>
+
+                <p className="mt-2 text-xs leading-6 text-white/50">
+                  Built to connect tenants, landlords, agents
+                  and communities.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="mx-auto max-w-[1280px] px-5 py-24 sm:px-8">
+        <div className="overflow-hidden rounded-2xl bg-[#f05a00] px-7 py-14 text-center text-white sm:px-12">
+          <h2 className="text-3xl font-black sm:text-5xl">
+            Find a home you can actually trust.
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-[600px] text-sm leading-6 text-white/80 sm:text-base">
+            Search verified properties, understand your
+            community and rent with greater confidence.
+          </p>
+
+          <button
+            onClick={() =>
+              scrollToSection(
+                "homes"
+              )
+            }
+            className="mt-8 rounded-lg bg-white px-7 py-4 text-sm font-black text-[#102f46] shadow-lg transition hover:-translate-y-0.5"
+          >
+            Find Verified Homes
+          </button>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-[#020709] text-white">
+        <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8">
+          <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+            <div className="lg:col-span-2">
+              <div className="flex items-center">
+                <img
+                  src="/spatdel.png"
+                  alt="SPATDEL"
+                  className="h-14 w-auto object-contain"
+                />
+              </div>
+
+              <p className="mt-5 max-w-[400px] text-sm leading-7 text-white/50">
+                A smarter property and community platform built
+                to make housing decisions in Lagos safer, clearer
+                and more informed.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-5 text-sm font-medium">
+                <a
+                  href="#"
+                  className="text-white/50 transition hover:text-[#19e58f]"
+                >
+                  Facebook
+                </a>
+
+                <a
+                  href="#"
+                  className="text-white/50 transition hover:text-[#19e58f]"
+                >
+                  X
+                </a>
+
+                <a
+                  href="#"
+                  className="text-white/50 transition hover:text-[#19e58f]"
+                >
+                  Instagram
+                </a>
+
+                <a
+                  href="#"
+                  className="text-white/50 transition hover:text-[#19e58f]"
+                >
+                  LinkedIn
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-[#19e58f]">
+                PLATFORM
+              </h4>
+
+              <div className="mt-5 space-y-3 text-sm text-white/50">
+                <a
+                  href="#homes"
+                  className="block hover:text-white"
+                >
+                  Find Homes
+                </a>
+
+                <a
+                  href="#spin"
+                  className="block hover:text-white"
+                >
+                  Spin & Earn
+                </a>
+
+                <a
+                  href="#security"
+                  className="block hover:text-white"
+                >
+                  Escrow Security
+                </a>
+
+                <a
+                  href="#community"
+                  className="block hover:text-white"
+                >
+                  Community Pulse
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-[#19e58f]">
+                COMPANY
+              </h4>
+
+              <div className="mt-5 space-y-3 text-sm text-white/50">
+                <a
+                  href="#"
+                  className="block hover:text-white"
+                >
+                  About Us
+                </a>
+
+                <a
+                  href="#"
+                  className="block hover:text-white"
+                >
+                  Contact
+                </a>
+
+                <a
+                  href="#"
+                  className="block hover:text-white"
+                >
+                  Privacy Policy
+                </a>
+
+                <a
+                  href="#"
+                  className="block hover:text-white"
+                >
+                  Terms of Service
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 border-t border-white/10 pt-7 text-xs text-white/30">
+            © 2026 SPATDEL. All rights reserved.
+          </div>
+        </div>
+      </footer>
+
+      {/* PROPERTY DETAILS MODAL */}
+      {selectedProperty && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-5 py-8 backdrop-blur-sm"
+          onClick={closePropertyModal}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <button
+              onClick={closePropertyModal}
+              className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition hover:bg-black/80"
+              aria-label="Close property details"
+            >
+              <X size={20} />
+            </button>
+
+            {/* PROPERTY IMAGE */}
+            <div className="relative h-64 overflow-hidden sm:h-80">
+              <img
+                src={
+                  selectedProperty.image
+                }
+                alt={
+                  selectedProperty.title
+                }
+                className="h-full w-full object-cover"
+              />
+
+              <div
+                className={`absolute bottom-4 left-4 rounded-md px-3 py-2 text-[9px] font-black text-white ${
+                  selectedProperty.verified
+                    ? "bg-[#087b62]"
+                    : "bg-[#71808a]"
+                }`}
+              >
+                {selectedProperty.verified
+                  ? "VERIFIED PROPERTY"
+                  : "PROPERTY LISTING"}
+              </div>
+
+              <button
+                onClick={() =>
+                  toggleSaveProperty(
+                    selectedProperty
+                  )
+                }
+                disabled={
+                  savingPropertyId ===
+                  selectedProperty.id
+                }
+                className={`absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-bold shadow-lg transition ${
+                  isPropertySaved(
+                    selectedProperty.id
+                  )
+                    ? "bg-[#f05a00] text-white"
+                    : "bg-white text-[#102f46]"
+                }`}
+              >
+                <Heart
+                  size={15}
+                  fill={
+                    isPropertySaved(
+                      selectedProperty.id
+                    )
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+
+                {isPropertySaved(
+                  selectedProperty.id
+                )
+                  ? "Saved"
+                  : "Save Property"}
+              </button>
+            </div>
+
+            <div className="p-6 sm:p-8">
+              {/* TITLE + PRICE */}
+              <div className="flex flex-col justify-between gap-4 sm:flex-row">
+                <div>
+                  <h2 className="text-2xl font-black text-[#102f46] sm:text-3xl">
+                    {
+                      selectedProperty.title
+                    }
+                  </h2>
+
+                  <p className="mt-2 flex items-center gap-2 text-sm text-[#71808a]">
+                    <MapPin size={15} />
+                    {selectedProperty.location ||
+                      "Lagos"}
+                  </p>
+                </div>
+
+                <div className="sm:text-right">
+                  <p className="text-2xl font-black text-[#087b62]">
+                    {
+                      getDisplayedPrice(selectedProperty.price)
+                    }
+                    {getOriginalPrice(selectedProperty.price) && (
+                      <span className="ml-2 text-sm font-semibold text-[#9aa4aa] line-through decoration-2">
+                        {getOriginalPrice(selectedProperty.price)}
+                      </span>
+                    )}
+                  </p>
+
+                  <p className="text-xs text-[#71808a]">
+                    per year
+                  </p>
+                </div>
+              </div>
+
+              {/* PROPERTY STATS */}
+              <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-xl bg-[#f8f7f2] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Type
+                  </p>
+
+                  <p className="mt-1 text-sm font-black">
+                    {selectedProperty.type ||
+                      `${selectedProperty.beds} BED`}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-[#f8f7f2] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Beds
+                  </p>
+
+                  <p className="mt-1 text-sm font-black">
+                    {
+                      selectedProperty.beds
+                    }
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-[#f8f7f2] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Baths
+                  </p>
+
+                  <p className="mt-1 text-sm font-black">
+                    {
+                      selectedProperty.baths
+                    }
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-[#f8f7f2] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Size
+                  </p>
+
+                  <p className="mt-1 text-sm font-black">
+                    {
+                      selectedProperty.sqm
+                    }{" "}
+                    sqm
+                  </p>
+                </div>
+              </div>
+
+              {/* PROPERTY INTELLIGENCE */}
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="rounded-xl bg-[#e4f5ee] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Flood Risk
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-[#087b62]">
+                    {selectedProperty.flood_risk ||
+                      selectedProperty.flood}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-[#fff0e8] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Power
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-[#f05a00]">
+                    {selectedProperty.power_hours ||
+                      selectedProperty.power}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-[#eef5f1] p-4">
+                  <p className="text-[10px] text-[#71808a]">
+                    Status
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-[#087b62]">
+                    {selectedProperty.verified
+                      ? "Verified"
+                      : "Pending"}
+                  </p>
+                </div>
+              </div>
+
+              {/* DESCRIPTION */}
+              {selectedProperty.description && (
+                <div className="mt-7 rounded-xl border border-[#102f46]/10 bg-white p-5">
+                  <h3 className="text-sm font-black">
+                    About this property
+                  </h3>
+
+                  <p className="mt-2 text-xs leading-6 text-[#71808a]">
+                    {
+                      selectedProperty.description
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* VERIFICATION */}
+              <div className="mt-7 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-5">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck
+                    className="mt-0.5 shrink-0 text-[#087b62]"
+                    size={22}
+                  />
+
+                  <div>
+                    <h3 className="text-sm font-black">
+                      SPATDEL Verification
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-6 text-[#71808a]">
+                      {selectedProperty.verified
+                        ? "This property has been marked as verified in the SPATDEL property database."
+                        : "This property is currently listed on SPATDEL but has not yet been marked as fully verified."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CHAT */}
+              {chatMode && (
+                <div className="mt-7 overflow-hidden rounded-xl border border-[#102f46]/10 bg-white shadow-sm">
+                  <div className="flex items-center justify-between border-b border-[#102f46]/10 bg-[#102f46] px-5 py-4 text-white">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#19e58f] text-[#071b18]">
+                        <MessageSquare
+                          size={17}
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-black">
+                          Property Chat
+                        </p>
+
+                        <p className="text-[9px] text-white/60">
+                          {
+                            selectedProperty.title
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setChatMode(
+                          false
+                        );
+                        setMessageError(
+                          ""
+                        );
+                      }}
+                      className="rounded-lg p-2 transition hover:bg-white/10"
+                    >
+                      <X size={17} />
+                    </button>
+                  </div>
+
+                  <div className="h-[300px] overflow-y-auto bg-[#f8f7f2] p-4">
+                    {messagesLoading ? (
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-xs font-bold text-[#71808a]">
+                          Loading messages...
+                        </p>
+                      </div>
+                    ) : messages.length ===
+                      0 ? (
+                      <div className="flex h-full items-center justify-center text-center">
+                        <div>
+                          <MessageSquare
+                            size={28}
+                            className="mx-auto text-[#087b62]"
+                          />
+
+                          <p className="mt-3 text-xs font-bold">
+                            No messages yet
+                          </p>
+
+                          <p className="mt-1 text-[10px] text-[#71808a]">
+                            Start the conversation below.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {messages.map(
+                          (message) => {
+                            const mine =
+                              message.sender_id ===
+                              user?.id;
+
+                            return (
+                              <div
+                                key={
+                                  message.id
+                                }
+                                className={`flex ${
+                                  mine
+                                    ? "justify-end"
+                                    : "justify-start"
+                                }`}
+                              >
+                                <div
+                                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                                    mine
+                                      ? "rounded-br-sm bg-[#102f46] text-white"
+                                      : "rounded-bl-sm bg-white text-[#102f46] shadow-sm"
+                                  }`}
+                                >
+                                  <p className="whitespace-pre-wrap text-xs leading-5">
+                                    {
+                                      message.message
+                                    }
+                                  </p>
+
+                                  <p
+                                    className={`mt-1 text-[8px] ${
+                                      mine
+                                        ? "text-white/50"
+                                        : "text-[#71808a]"
+                                    }`}
+                                  >
+                                    {new Date(
+                                      message.created_at
+                                    ).toLocaleTimeString(
+                                      [],
+                                      {
+                                        hour: "2-digit",
+                                        minute:
+                                          "2-digit",
+                                      }
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {messageError && (
+                    <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-[10px] text-red-700">
+                      {
+                        messageError
+                      }
+                    </div>
+                  )}
+
+                  <div className="border-t border-[#102f46]/10 bg-white p-3">
+                    <div className="flex items-end gap-2">
+                      <textarea
+                        value={
+                          messageText
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setMessageText(
+                            event.target
+                              .value
+                          )
+                        }
+                        onKeyDown={(
+                          event
+                        ) => {
+                          if (
+                            event.key ===
+                              "Enter" &&
+                            !event.shiftKey
+                          ) {
+                            event.preventDefault();
+
+                            if (
+                              !messageSending
+                            ) {
+                              sendChatMessage();
+                            }
+                          }
+                        }}
+                        rows={2}
+                        maxLength={1000}
+                        placeholder="Type your message..."
+                        className="min-h-[48px] flex-1 resize-none rounded-xl border border-[#102f46]/15 bg-[#f8f7f2] px-4 py-3 text-xs outline-none transition focus:border-[#f05a00] focus:ring-2 focus:ring-[#f05a00]/10"
+                      />
+
+                      <button
+                        onClick={
+                          sendChatMessage
+                        }
+                        disabled={
+                          messageSending ||
+                          !messageText.trim()
+                        }
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f05a00] text-white transition hover:bg-[#d94e00] disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Send message"
+                      >
+                        <Send
+                          size={17}
+                        />
+                      </button>
+                    </div>
+
+                    <p className="mt-2 text-[8px] text-[#71808a]">
+                      Press Enter to send. Shift + Enter for a new line.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* SUCCESS */}
+              {enquirySuccess &&
+                !chatMode && (
+                  <div className="mt-5 rounded-xl border border-[#087b62]/20 bg-[#e4f5ee] p-4">
+                    <div className="flex items-start gap-3">
+                      <Check
+                        size={20}
+                        className="mt-0.5 shrink-0 text-[#087b62]"
+                      />
+
+                      <div>
+                        <p className="text-xs font-black text-[#087b62]">
+                          Enquiry sent successfully
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-[#4c625a]">
+                          Your conversation has been started.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              {/* ENQUIRY FORM */}
+              {enquiryMode &&
+                !enquirySuccess && (
+                  <div className="mt-7 rounded-xl border border-[#f05a00]/20 bg-[#fffaf7] p-5 sm:p-6">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff0e8] text-[#f05a00]">
+                        <MessageSquare
+                          size={19}
+                        />
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-black">
+                          Start Property Conversation
+                        </h3>
+
+                        <p className="mt-1 text-xs leading-5 text-[#71808a]">
+                          Send a message to the agent or landlord handling this property.
+                        </p>
+                      </div>
+                    </div>
+
+                    {enquiryError && (
+                      <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                        {
+                          enquiryError
+                        }
+                      </div>
+                    )}
+
+                    <div className="mt-5">
+                      <label
+                        htmlFor="enquiry-subject"
+                        className="text-xs font-black text-[#102f46]"
+                      >
+                        Subject
+                      </label>
+
+                      <input
+                        id="enquiry-subject"
+                        type="text"
+                        value={
+                          enquirySubject
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setEnquirySubject(
+                            event.target
+                              .value
+                          )
+                        }
+                        placeholder="e.g. Availability and inspection"
+                        maxLength={120}
+                        className="mt-2 w-full rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#f05a00] focus:ring-2 focus:ring-[#f05a00]/10"
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <label
+                        htmlFor="enquiry-message"
+                        className="text-xs font-black text-[#102f46]"
+                      >
+                        First Message
+                      </label>
+
+                      <textarea
+                        id="enquiry-message"
+                        value={
+                          enquiryMessage
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setEnquiryMessage(
+                            event.target
+                              .value
+                          )
+                        }
+                        placeholder="Ask your question about this property..."
+                        rows={5}
+                        maxLength={1000}
+                        className="mt-2 w-full resize-none rounded-lg border border-[#102f46]/15 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#f05a00] focus:ring-2 focus:ring-[#f05a00]/10"
+                      />
+
+                      <div className="mt-1 text-right text-[9px] text-[#71808a]">
+                        {
+                          enquiryMessage.length
+                        }
+                        /1000
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                      <button
+                        onClick={
+                          submitPropertyEnquiry
+                        }
+                        disabled={
+                          enquirySubmitting
+                        }
+                        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#f05a00] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#d94e00] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Send
+                          size={16}
+                        />
+
+                        {enquirySubmitting
+                          ? "Starting Chat..."
+                          : "Start Conversation"}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setEnquiryMode(
+                            false
+                          );
+                          setEnquiryError(
+                            ""
+                          );
+                        }}
+                        disabled={
+                          enquirySubmitting
+                        }
+                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#102f46]/15 bg-white px-5 py-3.5 text-sm font-bold text-[#102f46] transition hover:bg-[#f8f7f2]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* ACTIONS */}
+              {!enquiryMode &&
+                !chatMode &&
+                !enquirySuccess && (
+                  <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      onClick={() =>
+                        handlePropertyEnquiry(
+                          selectedProperty
+                        )
+                      }
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#f05a00] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#d94e00]"
+                    >
+                      <MessageSquare
+                        size={17}
+                      />
+                      Contact / Enquire
+                    </button>
+
+                    <button
+                      onClick={
+                        closePropertyModal
+                      }
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#102f46] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#174763]"
+                    >
+                      Close
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
+              {/* CHAT CLOSE */}
+              {chatMode && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      setChatMode(
+                        false
+                      );
+                      setMessageError(
+                        ""
+                      );
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#102f46]/15 bg-white py-3 text-xs font-bold text-[#102f46] transition hover:bg-[#f8f7f2]"
+                  >
+                    <X size={15} />
+                    Close Chat
+                  </button>
+                </div>
+              )}
+
+              {!user &&
+                !enquiryMode &&
+                !chatMode &&
+                !enquirySuccess && (
+                  <p className="mt-4 text-center text-[10px] text-[#71808a]">
+                    You&apos;ll need an account before contacting
+                    the property agent or landlord.
+                  </p>
+                )}
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

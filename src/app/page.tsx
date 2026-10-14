@@ -1698,11 +1698,11 @@ export default function Home() {
             </span>
 
             <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
-              One-Time SPATDEL Reward
+              Weekly SPATDEL Reward
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[#71808a] sm:text-base">
-              Spin once to claim a lifetime reward. Eligible SPATDEL User, Agent, and Chairman accounts can participate.
+              Spin every 7 days to earn SPATDEL points. Higher-value prizes are rarer. Eligible SPATDEL User, Agent, and Chairman accounts can participate.
             </p>
           </div>
 

@@ -25,7 +25,7 @@ const types = [
   { value: "general", label: "General savings" },
   { value: "emergency", label: "Emergency fund" },
   { value: "furniture", label: "Furniture" },
-  { value: "deposit", label: "Property deposit" },
+  { value: "deposit", label: "House purchase / property deposit" },
 ];
 
 export default function SavingsGoalsPanel() {
@@ -128,7 +128,7 @@ export default function SavingsGoalsPanel() {
     <div className="space-y-6">
         <section className="rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-700 p-6 text-white shadow-xl sm:p-8">
           <div className="flex items-center gap-3"><div className="rounded-2xl bg-white/10 p-3"><PiggyBank size={28} /></div><div><p className="text-sm text-emerald-100">SPATDEL Savings</p><h1 className="text-3xl font-bold sm:text-4xl">Plan your next move</h1></div></div>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50">Create separate goals for rent, emergencies, furniture and property deposits. Your saved balance only changes after a verified financial integration records a real transaction.</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50">Create separate goals for rent, buying a house, emergencies, furniture and property deposits. Track your target and deadline here; your saved balance changes only after a verified financial integration records a real transaction.</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl bg-white/10 p-4"><p className="text-sm text-emerald-100">Total target</p><p className="mt-1 text-2xl font-bold">{naira(totalTarget)}</p></div>
             <div className="rounded-2xl bg-white/10 p-4"><p className="text-sm text-emerald-100">Verified saved amount</p><p className="mt-1 text-2xl font-bold">{naira(totalSaved)}</p></div>

@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const PropertyLocationPicker = dynamic(
+  () => import("@/components/PropertyMap").then((module) => module.PropertyLocationPicker),
+  { ssr: false, loading: () => <div className="flex h-[300px] items-center justify-center rounded-xl bg-[#f2f4f5] text-sm text-[#687987]">Loading location map...</div> }
+);
 import {
   ArrowLeft,
   Building2,
@@ -80,6 +86,8 @@ export default function AgentDashboard() {
   const [pricePeriod, setPricePeriod] = useState("per year");
   const [listingPurpose, setListingPurpose] = useState<"rent" | "sale">("rent");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [propertyType, setPropertyType] = useState("Apartment");
   const [beds, setBeds] = useState("2");
   const [baths, setBaths] = useState("1");
@@ -297,6 +305,11 @@ export default function AgentDashboard() {
     const numericBaths = Number(baths);
     const numericSqm = sqm.trim() === "" ? null : Number(sqm);
 
+    if (latitude === null || longitude === null) {
+      setError("Please tap the map to pin the exact property location before submitting.");
+      return;
+    }
+
     if (!location.trim().toLocaleLowerCase().includes("ijegun")) {
       setError("SPATDEL is currently available in Ijegun, Ikotun, Lagos State only. You can register and use your account, but properties outside Ijegun cannot be listed yet.");
       setNotice("");
@@ -360,6 +373,8 @@ export default function AgentDashboard() {
           power: powerHours,
           power_hours: powerHours,
           location: location.trim(),
+          latitude,
+          longitude,
           type: propertyType,
           listing_purpose: listingPurpose,
           description: description.trim() || null,
@@ -383,6 +398,8 @@ export default function AgentDashboard() {
       setPricePeriod("per year");
       setListingPurpose("rent");
       setLocation("");
+      setLatitude(null);
+      setLongitude(null);
       setBeds("2");
       setBaths("1");
       setSqm("");
@@ -495,6 +512,22 @@ export default function AgentDashboard() {
                 }} placeholder="Street/area, Ijegun, Ikotun, Lagos State" className="w-full rounded-xl border border-[#d5dde2] py-3 pl-11 pr-4 text-sm outline-none focus:border-[#087b62]" />
               </div>
               {notice && <p role="status" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{notice}</p>}
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Pin the exact house on the Ijegun map *</label>
+              <PropertyLocationPicker
+                latitude={latitude}
+                longitude={longitude}
+                onPick={(lat, lng) => {
+                  setLatitude(lat);
+                  setLongitude(lng);
+                  setError("");
+                }}
+              />
+              {latitude !== null && longitude !== null && (
+                <p className="mt-2 text-xs text-[#087b62]">Location pinned: {latitude.toFixed(6)}, {longitude.toFixed(6)}</p>
+              )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

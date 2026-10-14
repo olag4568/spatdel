@@ -109,7 +109,7 @@ export default function ChairmanDashboard() {
       }
 
       if (data.role !== "chairman") {
-        router.replace(data.role === "admin" ? "/admin" : data.role === "agent" || data.role === "landlord" ? "/agent" : "/");
+        router.replace(data.role === "admin" ? "/admin" : data.role === "agent" ? "/agent" : "/");
         return;
       }
 

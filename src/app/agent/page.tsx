@@ -18,6 +18,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import SpinEarn from "@/components/SpinEarn";
 
 type Role = "user" | "agent" | "chairman" | "admin";
 type Profile = { id: string; full_name: string | null; role: Role };
@@ -412,6 +413,7 @@ export default function AgentDashboard() {
 
   return (
     <main className="min-h-screen bg-[#f8f7f2] text-[#102f46]">
+      <div className="mx-auto max-w-6xl px-5 pt-6 sm:px-8"><SpinEarn /></div>
       <header className="border-b border-[#102f46]/10 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <div className="flex items-center gap-3">

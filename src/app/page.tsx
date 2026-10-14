@@ -870,9 +870,17 @@ export default function Home() {
     if (spinning) return;
 
     if (!user) {
-      const guestRewards = [5000, 10000, 25000, 50000, 75000, 100000];
-      const guestRewardIndex = Math.floor(Math.random() * guestRewards.length);
-      const guestReward = guestRewards[guestRewardIndex];
+      // Weighted guest preview: larger prizes are intentionally rarer.
+      const guestPrizeSlots = [
+        ...Array(30).fill(5000),
+        ...Array(25).fill(10000),
+        ...Array(20).fill(25000),
+        ...Array(15).fill(50000),
+        ...Array(7).fill(75000),
+        ...Array(3).fill(100000),
+      ];
+      const guestReward = guestPrizeSlots[Math.floor(Math.random() * guestPrizeSlots.length)];
+      const guestRewardIndex = [5000, 10000, 25000, 50000, 75000, 100000].indexOf(guestReward);
       setSpinning(true);
       setRewardError("");
       setRewardNotice("");

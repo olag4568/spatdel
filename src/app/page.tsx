@@ -1637,14 +1637,16 @@ export default function Home() {
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e4f5ee] text-[#087b62]"><Wallet size={20} /></span>
             <span><span className="block text-xs font-bold text-[#102f46]">Wallet</span><span className="mt-1 block text-[9px] text-[#71808a]">Balance and transactions</span></span>
           </button>
-          <button
-            type="button"
-            onClick={goToPostProperty}
-            className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#f05a00]/40 hover:bg-[#fff0e8]"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff0e8] text-[#f05a00]"><HomeIcon size={20} /></span>
-            <span><span className="block text-xs font-bold text-[#102f46]">Post Property</span><span className="mt-1 block text-[9px] text-[#71808a]">Create a property listing</span></span>
-          </button>
+          {userRole !== "admin" && (
+            <button
+              type="button"
+              onClick={goToPostProperty}
+              className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8f7f2] p-4 text-left transition hover:border-[#f05a00]/40 hover:bg-[#fff0e8]"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff0e8] text-[#f05a00]"><HomeIcon size={20} /></span>
+              <span><span className="block text-xs font-bold text-[#102f46]">Post Property</span><span className="mt-1 block text-[9px] text-[#71808a]">Create a property listing</span></span>
+            </button>
+          )}
           <button
             type="button"
             onClick={goToAccount}

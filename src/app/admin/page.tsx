@@ -27,7 +27,11 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type UserRole = "tenant" | "agent" | "landlord" | "chairman" | "admin";
+type UserRole = "user" | "agent" | "chairman" | "admin";
+
+function normalizeRole(role: string): UserRole {
+  return role === "agent" || role === "chairman" || role === "admin" ? role : "user";
+}
 
 type Profile = {
   id: string;
@@ -235,7 +239,7 @@ export default function AdminDashboard() {
         `Could not load users: ${usersError.message}`
       );
     } else {
-      setUsers(allUsers || []);
+      setUsers((allUsers || []).map((item) => ({ ...item, role: normalizeRole(item.role) })));
     }
 
     setLoadingUsers(false);
@@ -416,7 +420,7 @@ export default function AdminDashboard() {
 
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ role: newRole })
+      .update({ role: newRole, role_assigned: newRole !== "user" })
       .eq("id", userId);
 
     if (updateError) {
@@ -430,7 +434,7 @@ export default function AdminDashboard() {
     setUsers((currentUsers) =>
       currentUsers.map((user) =>
         user.id === userId
-          ? { ...user, role: newRole, role_assigned: true }
+          ? { ...user, role: newRole, role_assigned: newRole !== "user" }
           : user
       )
     );
@@ -711,23 +715,10 @@ export default function AdminDashboard() {
     setResolvingReportId(null);
   }
 
-  const memberCount = users.filter((user) => user.role_assigned === false).length;
-
-  const tenantCount = users.filter(
-    (user) => user.role === "tenant" && user.role_assigned !== false
-  ).length;
-
-  const agentCount = users.filter(
-    (user) => user.role === "agent"
-  ).length;
-
-  const landlordCount = users.filter(
-    (user) => user.role === "landlord"
-  ).length;
-
-  const adminCount = users.filter(
-    (user) => user.role === "admin"
-  ).length;
+  const memberCount = users.filter((user) => user.role === "user").length;
+  const agentCount = users.filter((user) => user.role === "agent").length;
+  const chairmanCount = users.filter((user) => user.role === "chairman").length;
+  const adminCount = users.filter((user) => user.role === "admin").length;
 
   const verifiedProperties = properties.filter(
     (property) => property.verified === true
@@ -991,35 +982,10 @@ export default function AdminDashboard() {
 
         {/* ROLE STATS */}
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <RoleCard
-            title="Members awaiting roles"
-            value={memberCount}
-            icon={<Users size={19} />}
-          />
-
-          <RoleCard
-            title="Tenants"
-            value={tenantCount}
-            icon={<User size={19} />}
-          />
-
-          <RoleCard
-            title="Agents"
-            value={agentCount}
-            icon={<Building2 size={19} />}
-          />
-
-          <RoleCard
-            title="Landlords"
-            value={landlordCount}
-            icon={<Home size={19} />}
-          />
-
-          <RoleCard
-            title="Admins"
-            value={adminCount}
-            icon={<ShieldCheck size={19} />}
-          />
+          <RoleCard title="SPATDEL Users" value={memberCount} icon={<Users size={19} />} />
+          <RoleCard title="Agents" value={agentCount} icon={<Building2 size={19} />} />
+          <RoleCard title="Chairmen" value={chairmanCount} icon={<ShieldCheck size={19} />} />
+          <RoleCard title="Admins" value={adminCount} icon={<ShieldCheck size={19} />} />
         </div>
 
         {/* CHAIRMAN APPLICATIONS AND COMMUNITY SETUP */}
@@ -1202,7 +1168,7 @@ export default function AdminDashboard() {
                     </h2>
 
                     <p className="text-xs text-[#71808a]">
-                      New accounts appear as Members until an admin assigns Tenant, Agent, Landlord, Chairman or Admin access.
+                      Every new account is a SPATDEL User. Admins can assign Agent or Chairman access.
                     </p>
                   </div>
                 </div>
@@ -1238,11 +1204,8 @@ export default function AdminDashboard() {
                   className="rounded-lg border border-[#102f46]/10 bg-[#f8f7f2] px-3 py-2.5 text-sm font-medium outline-none focus:border-[#087b62]"
                 >
                   <option value="all">All roles</option>
-                  <option value="tenant">Tenants</option>
+                  <option value="user">SPATDEL Users</option>
                   <option value="agent">Agents</option>
-                  <option value="landlord">
-                    Landlords
-                  </option>
                   <option value="chairman">Chairmen</option>
                   <option value="admin">Admins</option>
                 </select>
@@ -1341,7 +1304,7 @@ export default function AdminDashboard() {
                           </span>
                         ) : (
                           <select
-                            value={user.role_assigned === false ? "" : user.role}
+                            value={user.role}
                             disabled={
                               updatingRoleId === user.id
                             }
@@ -1354,26 +1317,10 @@ export default function AdminDashboard() {
                             }
                             className="rounded-lg border border-[#102f46]/10 bg-white px-3 py-2 text-xs font-bold outline-none transition focus:border-[#087b62] disabled:opacity-50"
                           >
-                            <option value="" disabled>Assign role…</option>
-                            <option value="tenant">
-                              Tenant
-                            </option>
-
-                            <option value="agent">
-                              Agent
-                            </option>
-
-                            <option value="landlord">
-                              Landlord
-                            </option>
-
-                            <option value="chairman">
-                              Chairman
-                            </option>
-
-                            <option value="admin">
-                              Admin
-                            </option>
+                            <option value="user">SPATDEL User</option>
+                            <option value="agent">Agent</option>
+                            <option value="chairman">Chairman</option>
+                            <option value="admin">Admin</option>
                           </select>
                         )}
                       </td>
@@ -1770,9 +1717,8 @@ export default function AdminDashboard() {
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-                Tenant, Agent and Landlord dashboards will
-                connect to this control center. The messaging
-                system will later connect these roles directly.
+                SPATDEL User, Agent and Chairman experiences connect
+                through this control center and the shared messaging system.
               </p>
             </div>
 
@@ -2059,20 +2005,16 @@ function RoleCard({
 }
 
 function RoleBadge({ role, assigned = true }: { role: UserRole; assigned?: boolean }) {
+  if (role === "user") {
+    return <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">SPATDEL User</span>;
+  }
   if (!assigned) {
-    return <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Member · role pending</span>;
+    return <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Role pending</span>;
   }
   const styles = {
-    tenant:
-      "bg-blue-50 text-blue-700 border-blue-100",
-    agent:
-      "bg-orange-50 text-orange-700 border-orange-100",
-    landlord:
-      "bg-purple-50 text-purple-700 border-purple-100",
-    chairman:
-      "bg-teal-50 text-teal-700 border-teal-100",
-    admin:
-      "bg-[#e4f5ee] text-[#087b62] border-[#087b62]/20",
+    agent: "bg-orange-50 text-orange-700 border-orange-100",
+    chairman: "bg-teal-50 text-teal-700 border-teal-100",
+    admin: "bg-[#e4f5ee] text-[#087b62] border-[#087b62]/20",
   };
 
   return (

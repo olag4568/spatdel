@@ -1663,33 +1663,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* QUICK DASHBOARD LINKS */}
+      {/* TRUST */}
       <section className="border-y border-[#102f46]/10 bg-white">
-        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-3 px-5 py-5 sm:grid-cols-3 lg:grid-cols-6 sm:px-8">
-          <button onClick={goToAccount} className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8faf9] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#eef8f4]">
-            <LayoutDashboard className="shrink-0 text-[#087b62]" size={22} />
-            <span><span className="block text-xs font-bold text-[#102f46]">Dashboard</span><span className="mt-1 block text-[9px] text-[#71808a]">Your workspace</span></span>
-          </button>
-          <button onClick={() => { setProfileMenu(false); router.push("/profile/edit"); }} className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8faf9] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#eef8f4]">
-            <User className="shrink-0 text-[#f05a00]" size={22} />
-            <span><span className="block text-xs font-bold text-[#102f46]">Profile</span><span className="mt-1 block text-[9px] text-[#71808a]">Personal details</span></span>
-          </button>
-          <button onClick={goToWallet} className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8faf9] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#eef8f4]">
-            <Wallet className="shrink-0 text-[#087b62]" size={22} />
-            <span><span className="block text-xs font-bold text-[#102f46]">Wallet</span><span className="mt-1 block text-[9px] text-[#71808a]">Balance & transactions</span></span>
-          </button>
-          <button onClick={() => { setProfileMenu(false); router.push("/wallet#savings-goals"); }} className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8faf9] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#eef8f4]">
-            <Star className="shrink-0 text-[#f05a00]" size={22} />
-            <span><span className="block text-xs font-bold text-[#102f46]">Savings</span><span className="mt-1 block text-[9px] text-[#71808a]">Your savings goals</span></span>
-          </button>
-          <button onClick={goToPostProperty} className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8faf9] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#eef8f4]">
-            <HomeIcon className="shrink-0 text-[#087b62]" size={22} />
-            <span><span className="block text-xs font-bold text-[#102f46]">Post Property</span><span className="mt-1 block text-[9px] text-[#71808a]">List a home</span></span>
-          </button>
-          <button onClick={goToMessages} className="flex items-center gap-3 rounded-xl border border-[#102f46]/10 bg-[#f8faf9] p-4 text-left transition hover:border-[#087b62]/40 hover:bg-[#eef8f4]">
-            <MessageSquare className="shrink-0 text-[#f05a00]" size={22} />
-            <span><span className="block text-xs font-bold text-[#102f46]">Messages</span><span className="mt-1 block text-[9px] text-[#71808a]">Your conversations</span></span>
-          </button>
+        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-6 px-5 py-7 sm:grid-cols-4 sm:px-8">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="text-[#087b62]" />
+            <div>
+              <p className="text-xs font-bold">Verified Homes</p>
+              <p className="text-[9px] text-[#71808a]">Inspected listings</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Zap className="text-[#f05a00]" />
+            <div>
+              <p className="text-xs font-bold">Power Data</p>
+              <p className="text-[9px] text-[#71808a]">Real community reports</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <MapPin className="text-[#087b62]" />
+            <div>
+              <p className="text-xs font-bold">Flood Intelligence</p>
+              <p className="text-[9px] text-[#71808a]">Location-based risk</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="text-[#f05a00]" />
+            <div>
+              <p className="text-xs font-bold">Payment Protection</p>
+              <p className="text-[9px] text-[#71808a]">Escrow security</p>
+            </div>
+          </div>
         </div>
       </section>
 

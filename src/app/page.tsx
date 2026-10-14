@@ -49,7 +49,7 @@ type SavedPropertyRow = {
   property_id: string;
 };
 
-type UserRole = "tenant" | "agent" | "landlord" | "chairman" | "admin";
+type UserRole = "user" | "tenant" | "agent" | "landlord" | "chairman" | "admin";
 
 type Profile = {
   role: UserRole;
@@ -1659,7 +1659,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SPIN & EARN — visible to guests and tenants only */}
+      {/* SPIN & EARN — visible to guests and eligible non-admin roles */}
       {(!authLoading && (!user || (!roleLoading && ["user", "agent", "chairman"].includes(userRole || "")))) && (
       <section
         id="spin"

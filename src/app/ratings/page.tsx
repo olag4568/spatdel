@@ -29,6 +29,15 @@ export default function RatingsPage() {
     setError("");
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) { router.replace("/login?next=/ratings"); return; }
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", authData.user.id)
+      .maybeSingle();
+    if (profileError || profile?.role !== "admin") {
+      router.replace("/");
+      return;
+    }
     setUserId(authData.user.id);
     const [propertyResult, memberResult, ratingResult] = await Promise.all([
       supabase.from("properties").select("id,title,location,owner_id,submitted_by").limit(100),

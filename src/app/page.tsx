@@ -80,6 +80,7 @@ export default function Home() {
   const [rewardStatusLoaded, setRewardStatusLoaded] = useState(false);
   const [rewardError, setRewardError] = useState("");
   const [rewardNotice, setRewardNotice] = useState("");
+  const [guestClaimPoints, setGuestClaimPoints] = useState<number | null>(null);
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
@@ -869,8 +870,18 @@ export default function Home() {
     if (spinning) return;
 
     if (!user) {
-      setRewardError("Sign in to use Spin & Earn.");
-      router.push("/login?next=/#spin");
+      const guestRewards = [5000, 10000, 25000, 50000, 75000, 100000];
+      const guestRewardIndex = Math.floor(Math.random() * guestRewards.length);
+      const guestReward = guestRewards[guestRewardIndex];
+      setSpinning(true);
+      setRewardError("");
+      setRewardNotice("");
+      const targetRotation = (360 - guestRewardIndex * 60) % 360;
+      setWheelRotation((current) => current + 1440 + targetRotation);
+      window.setTimeout(() => {
+        setGuestClaimPoints(guestReward);
+        setSpinning(false);
+      }, 1900);
       return;
     }
 
@@ -1794,7 +1805,7 @@ export default function Home() {
                     {spinning
                       ? "SPINNING..."
                       : !user
-                        ? "SIGN IN"
+                        ? "SPIN NOW"
                         : rewardSpunAt && Date.now() < new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000
                           ? "WAIT"
                           : rewardLoading || !rewardStatusLoaded
@@ -1856,6 +1867,20 @@ export default function Home() {
 
       )}
       
+      {guestClaimPoints !== null && !user && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#071b18]/70 p-4" role="dialog" aria-modal="true" aria-labelledby="guest-reward-title">
+          <div className="w-full max-w-md rounded-2xl bg-white p-7 text-center shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f8ef] text-3xl">🎉</div>
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-[#087b62]">You landed on</p>
+            <h2 id="guest-reward-title" className="mt-2 text-4xl font-black text-[#102f46]">{guestClaimPoints.toLocaleString("en-NG")} points</h2>
+            <p className="mt-3 text-sm leading-6 text-[#71808a]">Create your SPATDEL account to claim this reward and add it to your points balance. 100 points are worth about ₦1 and can be used on eligible SPATDEL purchases only.</p>
+            <button onClick={() => router.push("/signup?next=%2F%23spin")} className="mt-6 w-full rounded-xl bg-[#087b62] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#065f4b]">Sign up to claim</button>
+            <button onClick={() => setGuestClaimPoints(null)} className="mt-3 w-full rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-[#102f46] hover:bg-slate-50">Maybe later</button>
+            <p className="mt-3 text-[10px] leading-4 text-[#71808a]">Your guest spin is a preview. The reward is only saved after you sign in to an eligible account and claim it.</p>
+          </div>
+        </div>
+      )}
+
       {/* PROPERTIES */}
       <section
         id="homes"

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import SavingsGoalsPanel from "@/components/SavingsGoalsPanel";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -582,10 +581,7 @@ export default function WalletPage() {
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
               <div className="flex items-start gap-2"><AlertTriangle size={18} className="mt-1 shrink-0" /><p><strong>Payments are not live yet.</strong> Do not send money to an admin's personal account. Deposits, escrow/collection, refunds and seller payouts must be processed and reconciled through an approved provider and trusted server-side webhooks. This dashboard is the first UI layer, not a live-money transfer system.</p></div>
             </section>
-            <div id="savings-goals">
-              <SavingsGoalsPanel />
-            </div>
-          </>
+</>
         )}
       </div>
     </main>

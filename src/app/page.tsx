@@ -1787,7 +1787,7 @@ export default function Home() {
                     disabled={
                       spinning ||
                       rewardLoading ||
-                      (Boolean(user) && ["user", "agent", "chairman"].includes(userRole || "") && (rewardAmount !== null || Boolean(rewardSpunAt)))
+                      (Boolean(user) && ["user", "agent", "chairman"].includes(userRole || "") && (Boolean(rewardSpunAt) && Date.now() < new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000))
                     }
                     className="flex h-[82px] w-[82px] items-center justify-center rounded-full border-[4px] border-[#19e58f] bg-[#071b18] text-center text-[10px] font-black text-[#19e58f] shadow-[0_4px_20px_rgba(0,0,0,0.45)] transition duration-200 hover:scale-105 hover:border-white disabled:cursor-not-allowed disabled:scale-100 disabled:opacity-80"
                   >
@@ -1795,8 +1795,8 @@ export default function Home() {
                       ? "SPINNING..."
                       : !user
                         ? "SIGN IN"
-                        : rewardAmount !== null || rewardSpunAt
-                          ? "USED"
+                        : rewardSpunAt && Date.now() < new Date(rewardSpunAt).getTime() + 7 * 24 * 60 * 60 * 1000
+                          ? "WAIT"
                           : rewardLoading || !rewardStatusLoaded
                             ? "CHECKING"
                             : "SPIN NOW"}

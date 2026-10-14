@@ -11,7 +11,12 @@ ALTER TABLE public.properties
   CHECK (
     (latitude IS NULL AND longitude IS NULL)
     OR
-    (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)
+    (
+      latitude IS NOT NULL
+      AND longitude IS NOT NULL
+      AND latitude BETWEEN -90 AND 90
+      AND longitude BETWEEN -180 AND 180
+    )
   );
 
 CREATE INDEX IF NOT EXISTS properties_map_coordinates_idx

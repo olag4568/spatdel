@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
+  ssr: false,
+  loading: () => <div className="flex h-[430px] items-center justify-center rounded-2xl bg-[#eef2f3] text-sm font-semibold text-[#52636d]">Loading Ijegun property map...</div>,
+});
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowRight,
@@ -38,6 +44,8 @@ type Property = {
   power: string;
   verified?: boolean | null;
   location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   type?: string | null;
   listing_purpose?: "rent" | "sale" | null;
   flood_risk?: string | null;
@@ -1577,16 +1585,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-[#102f46]/10 shadow-2xl">
-            <iframe
-              title="Map of Ijegun Community Road, Lagos"
-              src="https://maps.google.com/maps?q=Ijegun%20Community%20Road%2C%20Lagos%2C%20Nigeria&t=&z=15&ie=UTF8&iwloc=&output=embed"
-              className="h-[430px] w-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
-          </div>
+          <PropertyMap properties={properties} />
         </div>
       </section>
 

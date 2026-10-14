@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type Role = "tenant" | "agent" | "landlord" | "chairman" | "admin";
+type Role = "user" | "agent" | "chairman" | "admin";
 type Profile = { id: string; full_name: string | null; role: Role };
 type Listing = {
   id: string;
@@ -123,7 +123,7 @@ export default function AgentDashboard() {
         return;
       }
 
-      // All ordinary users may publish a property listing; agent/landlord status is not required.
+      // Ordinary SPATDEL users can publish property listings; Agent access adds agent-specific permissions.
 
       setProfile(data as Profile);
 
@@ -160,12 +160,12 @@ export default function AgentDashboard() {
           const { data: tenantProfiles } = tenantIds.length
             ? await supabase.from("profiles").select("id, full_name, email").in("id", tenantIds)
             : { data: [] };
-          const tenantNameById = new Map((tenantProfiles || []).map((tenant) => [tenant.id, tenant.full_name || tenant.email || "SPATDEL tenant"]));
+          const tenantNameById = new Map((tenantProfiles || []).map((tenant) => [tenant.id, tenant.full_name || tenant.email || "SPATDEL User"]));
           const titleById = new Map(ownListings.map((listing) => [listing.id, listing.title]));
           setEnquiries(rows.map((row) => ({
             ...row,
             property_title: titleById.get(row.property_id) || "Your property",
-            tenant_name: tenantNameById.get(row.tenant_id) || "SPATDEL tenant",
+            tenant_name: tenantNameById.get(row.tenant_id) || "SPATDEL User",
           })) as Enquiry[]);
         }
         setLoadingEnquiries(false);
@@ -249,7 +249,7 @@ export default function AgentDashboard() {
       setEnquiries((current) => current.map((item) => item.id === enquiry.id
         ? { ...item, status: "responded", conversation_id: conversationId }
         : item));
-      setNotice("Reply sent. It is now connected to the tenant's SPATDEL Messages inbox.");
+      setNotice("Reply sent. It is now connected to the user's SPATDEL Messages inbox.");
     } catch (replyError) {
       setError(replyError instanceof Error ? replyError.message : "Reply could not be sent.");
     } finally {
@@ -553,7 +553,7 @@ export default function AgentDashboard() {
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e8f4ed] text-[#087b62]"><MessageCircle size={22} /></div>
               <div>
                 <h2 className="text-lg font-bold">Messages inbox</h2>
-                <p className="mt-1 text-sm leading-6 text-[#687987]">All tenant enquiries and your replies belong in one shared conversation. Open Messages to continue chats with tenants about your properties.</p>
+                <p className="mt-1 text-sm leading-6 text-[#687987]">Property enquiries and your replies belong in one shared conversation. Open Messages to continue chats with SPATDEL users about your properties.</p>
               </div>
             </div>
             <button onClick={() => router.push("/messages")} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#087b62] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#066851]"><MessageCircle size={17} /> Open main Messages</button>

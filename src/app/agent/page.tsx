@@ -596,7 +596,7 @@ export default function AgentDashboard() {
 
           <div className="rounded-3xl border border-[#dce3e7] bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold">My submissions</h2>
-            <p className="mt-1 text-sm text-[#687987]">Track each property's review status.</p>
+            <p className="mt-1 text-sm text-[#687987]">Track each property&apos;s review status.</p>
             <div className="mt-5 space-y-3">
               {listings.length === 0 ? (
                 <div className="rounded-2xl bg-[#f5f7f8] p-4 text-sm text-[#687987]">No properties submitted yet.</div>

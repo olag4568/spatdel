@@ -258,7 +258,7 @@ export default function AgentDashboard() {
       setEnquiries((current) => current.map((item) => item.id === enquiry.id
         ? { ...item, status: "responded", conversation_id: conversationId }
         : item));
-      setNotice("Reply sent. It is now connected to the user's SPATDEL Messages inbox.");
+      setNotice("Reply sent. It is now connected to the user&apos;s SPATDEL Messages inbox.");
     } catch (replyError) {
       setError(replyError instanceof Error ? replyError.message : "Reply could not be sent.");
     } finally {

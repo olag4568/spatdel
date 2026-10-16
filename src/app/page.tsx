@@ -306,6 +306,7 @@ export default function Home() {
         .select("*")
         // Public browsing must never show listings awaiting admin approval.
         .eq("verified", true)
+        .eq("availability_status", "available")
         .order("created_at", { ascending: false });
 
       if (!mounted) return;

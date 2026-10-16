@@ -41,9 +41,13 @@ export default function CommunityActivitiesPage() {
     }
     const es = (er.data || []) as EventRow[], ps = (pr.data || []) as PollRow[];
     setEvents(es); setPolls(ps);
-    if (ps.length) {
+    const { data: authData } = await supabase.auth.getUser();
+    if (authData.user && ps.length) {
       const vr = await supabase.from("spatdel_community_poll_votes").select("poll_id,voter_id,option_index").in("poll_id", ps.map(p => p.id));
       if (!vr.error) setVotes((vr.data || []) as VoteRow[]);
+    } else {
+      // Never expose individual voter identities to anonymous visitors.
+      setVotes([]);
     }
     setLoading(false);
   }, [supabase]);
@@ -53,12 +57,12 @@ export default function CommunityActivitiesPage() {
     void (async () => {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
-      if (!data.user) { router.replace("/login?next=/community/activities"); return; }
-      setUserId(data.user.id);
+      if (data.user) setUserId(data.user.id);
+      // Events and polls are readable without an account.
+      await load();
     })();
     return () => { active = false; };
-  }, [router, supabase]);
-  useEffect(() => { if (userId) void load(); }, [userId, load]);
+  }, [supabase, load]);
 
   async function createEvent(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setError(""); setNotice("");

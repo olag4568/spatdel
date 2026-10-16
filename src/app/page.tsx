@@ -87,6 +87,7 @@ export default function Home() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [propertiesError, setPropertiesError] = useState("");
+  const [propertyStreetSearch, setPropertyStreetSearch] = useState("");
 
   const [selectedProperty, setSelectedProperty] =
     useState<Property | null>(null);
@@ -1906,6 +1907,26 @@ export default function Home() {
           </div>
         )}
 
+        <div className="mb-6 max-w-xl">
+          <label htmlFor="property-street-search" className="mb-2 block text-sm font-bold text-[#102f46]">
+            Find homes by street
+          </label>
+          <div className="relative">
+            <MapPin size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#087b62]" />
+            <input
+              id="property-street-search"
+              type="search"
+              value={propertyStreetSearch}
+              onChange={(event) => setPropertyStreetSearch(event.target.value)}
+              placeholder="Enter a street or area in Ijegun"
+              className="w-full rounded-xl border border-[#102f46]/15 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[#087b62] focus:ring-2 focus:ring-[#087b62]/15"
+            />
+          </div>
+          <p className="mt-2 text-xs text-[#71808a]">
+            Search matches the location saved on each verified listing.
+          </p>
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {propertiesLoading ? (
             <div className="col-span-full rounded-xl border border-[#102f46]/10 bg-white p-10 text-center">
@@ -1923,7 +1944,7 @@ export default function Home() {
                 {propertiesError}
               </p>
             </div>
-          ) : properties.length ===
+          ) : properties.filter((property) => (property.location ?? "").toLowerCase().includes(propertyStreetSearch.trim().toLowerCase())).length ===
             0 ? (
             <div className="col-span-full rounded-xl border border-[#102f46]/10 bg-white p-10 text-center">
               <p className="text-sm font-bold">

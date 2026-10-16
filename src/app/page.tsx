@@ -2,12 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-
-const PropertyMap = dynamic(() => import("@/components/PropertyMap"), {
-  ssr: false,
-  loading: () => <div className="flex h-[430px] items-center justify-center rounded-2xl bg-[#eef2f3] text-sm font-semibold text-[#52636d]">Loading Ijegun property map...</div>,
-});
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowRight,
@@ -1590,7 +1584,15 @@ export default function Home() {
             </div>
           </div>
 
-          <PropertyMap properties={properties} />
+          <div className="relative flex min-h-[430px] items-center justify-center overflow-hidden rounded-2xl border border-[#102f46]/10 bg-[#eef2f3] p-8 text-center">
+            <div className="max-w-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#087b62] shadow-sm">
+                <span className="text-2xl">⌂</span>
+              </div>
+              <h2 className="mt-5 text-xl font-black text-[#102f46]">Ijegun Homes</h2>
+              <p className="mt-2 text-sm leading-6 text-[#63717a]">The interactive map is temporarily turned off while we test the rest of SPATDEL.</p>
+            </div>
+          </div>
         </div>
       </section>
 

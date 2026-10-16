@@ -1167,6 +1167,13 @@ export default function Home() {
     }
   }
 
+  const filteredProperties = properties.filter((property) => {
+    const location = (property.location ?? "").trim().toLowerCase();
+    const isIjegunListing = location.includes("ijegun");
+    const matchesStreet = location.includes(propertyStreetSearch.trim().toLowerCase());
+    return isIjegunListing && matchesStreet;
+  });
+
   return (
     <main className="min-h-screen bg-[#f8f7f2] text-[#102f46]">
       {/* NAVBAR */}
@@ -1944,7 +1951,7 @@ export default function Home() {
                 {propertiesError}
               </p>
             </div>
-          ) : properties.filter((property) => (property.location ?? "").toLowerCase().includes(propertyStreetSearch.trim().toLowerCase())).length ===
+          ) : filteredProperties.length ===
             0 ? (
             <div className="col-span-full rounded-xl border border-[#102f46]/10 bg-white p-10 text-center">
               <p className="text-sm font-bold">
@@ -1956,7 +1963,7 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            properties.map(
+            filteredProperties.map(
               (property) => {
                 const saved =
                   isPropertySaved(

@@ -117,7 +117,7 @@ export default function AdminPaymentsPage() {
               <p className="text-sm font-medium text-slate-300">SPATDEL · Admin only</p>
               <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Payment & payout review</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                Review users' registered payout destinations. The payment provider belongs to SPATDEL administration; users only submit their own bank details. This page does not initiate transfers.
+                Review users&apos; registered payout destinations. The payment provider belongs to SPATDEL administration; users only submit their own bank details. This page does not initiate transfers.
               </p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3"><Wallet size={28} /></div>

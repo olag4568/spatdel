@@ -66,7 +66,10 @@ export default function AdminPaymentsPage() {
   }, []);
 
   useEffect(() => {
-    void loadAccounts();
+    const timer = window.setTimeout(() => {
+      void loadAccounts();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadAccounts]);
 
   async function reviewAccount(id: string, status: "verified" | "rejected") {

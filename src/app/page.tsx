@@ -316,7 +316,12 @@ export default function Home() {
       if (!mounted) return;
 
       if (error) {
-        console.error("Failed to load properties:", error);
+        console.error("Failed to load properties:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
 
         setPropertiesError(
           "Unable to load properties right now."

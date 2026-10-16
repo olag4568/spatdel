@@ -1584,16 +1584,18 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative flex min-h-[430px] items-center justify-center overflow-hidden rounded-2xl border border-[#102f46]/10 bg-[#eef2f3] p-8 text-center">
-            <div className="max-w-sm">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#087b62] shadow-sm">
-                <span className="text-2xl">⌂</span>
-              </div>
-              <h2 className="mt-5 text-xl font-black text-[#102f46]">Ijegun Homes</h2>
-              <p className="mt-2 text-sm leading-6 text-[#63717a]">The interactive map is temporarily turned off while we test the rest of SPATDEL.</p>
+          <div className="relative z-0 isolate overflow-hidden rounded-2xl border border-[#102f46]/10 bg-white shadow-2xl">
+            <iframe
+              title="Map of Ijegun, Lagos"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=3.245%2C6.505%2C3.295%2C6.545&layer=mapnik&marker=6.5244%2C3.2696"
+              className="block h-[430px] w-full border-0"
+              loading="lazy"
+            />
+            <div className="flex items-center justify-between gap-3 border-t border-[#102f46]/10 bg-white px-4 py-3">
+              <span className="text-xs font-bold text-[#102f46]">Ijegun, Lagos</span>
+              <a href="https://www.openstreetmap.org/?mlat=6.5244&mlon=3.2696#map=15/6.5244/3.2696" target="_blank" rel="noreferrer" className="text-xs font-bold text-[#087b62] underline">Open larger map</a>
             </div>
-          </div>
-        </div>
+          </div>        </div>
       </section>
 
       {/* QUICK ACCESS — replaces the old trust strip; main navigation stays unchanged */}

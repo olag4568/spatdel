@@ -90,16 +90,13 @@ export default function CommunityPage() {
     async function start() {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
-      if (!data.user) { router.replace("/login?next=/community"); return; }
-      const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-      if (!active) return;
-      if (profileError || !profile) {
-        router.replace("/");
-        return;
+      if (data.user) {
+        setUserId(data.user.id);
+        const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+        if (!active) return;
+        setCurrentRole(profile?.role || "");
       }
-      setUserId(data.user.id);
-      setCurrentRole(profile.role || "");
-      if (!["admin", "chairman"].includes(profile.role || "")) setTab("chat");
+      // Community Pulse is public to browse; write actions still require a signed-in user.
       await Promise.all([loadPosts(), loadMessages()]);
       if (active) setLoading(false);
     }

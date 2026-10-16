@@ -36,6 +36,7 @@ type Listing = {
   approval_status: "pending" | "approved" | "rejected" | "changes_requested" | null;
   created_at: string;
   review_note?: string | null;
+  availability_status?: "available" | "rented" | "sold" | "deleted" | null;
 };
 
 type Enquiry = {
@@ -73,6 +74,7 @@ export default function AgentDashboard() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
+  const [updatingListingId, setUpdatingListingId] = useState<string | null>(null);
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [selectedEnquiryId, setSelectedEnquiryId] = useState("");
   const [enquiryMessages, setEnquiryMessages] = useState<EnquiryMessage[]>([]);
@@ -138,7 +140,7 @@ export default function AgentDashboard() {
 
       const { data: ownListings, error: listingsError } = await supabase
         .from("properties")
-        .select("id, title, price, location, approval_status, created_at, review_note")
+        .select("id, title, price, location, approval_status, availability_status, created_at, review_note")
         .eq("submitted_by", authData.user.id)
         .order("created_at", { ascending: false });
 
@@ -266,6 +268,41 @@ export default function AgentDashboard() {
     }
   }
 
+  async function updateListingAvailability(listing: Listing, status: "available" | "rented" | "sold" | "deleted") {
+    if (!profile || updatingListingId) return;
+    const confirmation = status === "deleted"
+      ? "Remove this property from SPATDEL? Its record will be kept for history."
+      : status === "available"
+        ? "Make this property available in the marketplace again?"
+        : `Mark this property as ${status} and hide it from available listings?`;
+    if (!window.confirm(confirmation)) return;
+
+    setError("");
+    setNotice("");
+    setUpdatingListingId(listing.id);
+    try {
+      const { error: updateError } = await supabase
+        .from("properties")
+        .update({ availability_status: status })
+        .eq("id", listing.id)
+        .eq("submitted_by", profile.id);
+      if (updateError) throw new Error(updateError.message);
+
+      setListings((current) => current.map((item) =>
+        item.id === listing.id ? { ...item, availability_status: status } : item
+      ));
+      setNotice(status === "deleted"
+        ? "Property removed from your listings. Its database record is preserved."
+        : status === "available"
+          ? "Property marked available again."
+          : `Property marked ${status} and hidden from public listings.`);
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Could not update this property.");
+    } finally {
+      setUpdatingListingId(null);
+    }
+  }
+
   function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     setError("");
     const selected = Array.from(event.target.files ?? []);
@@ -382,7 +419,7 @@ export default function AgentDashboard() {
           approval_status: "pending",
           submitted_by: profile.id,
         })
-        .select("id, title, price, location, approval_status, created_at, review_note")
+        .select("id, title, price, location, approval_status, availability_status, created_at, review_note")
         .single();
 
       if (insertError) {
@@ -611,6 +648,15 @@ export default function AgentDashboard() {
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass}`}>{statusLabel}</span>
                     </div>
                     {listing.review_note && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">Admin note: {listing.review_note}</p>}
+                    <p className="mt-3 text-xs font-semibold text-[#536776]">Availability: {(listing.availability_status ?? "available") === "deleted" ? "Removed" : (listing.availability_status ?? "available").charAt(0).toUpperCase() + (listing.availability_status ?? "available").slice(1)}</p>
+                    {(listing.approval_status === "approved" || listing.approval_status === null) && (listing.availability_status ?? "available") !== "deleted" && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {(listing.availability_status ?? "available") !== "rented" && <button type="button" disabled={updatingListingId === listing.id} onClick={() => updateListingAvailability(listing, "rented")} className="rounded-lg border border-[#d5dde2] px-3 py-2 text-xs font-semibold disabled:opacity-50">Mark rented</button>}
+                        {(listing.availability_status ?? "available") !== "sold" && <button type="button" disabled={updatingListingId === listing.id} onClick={() => updateListingAvailability(listing, "sold")} className="rounded-lg border border-[#d5dde2] px-3 py-2 text-xs font-semibold disabled:opacity-50">Mark sold</button>}
+                        {(listing.availability_status ?? "available") !== "available" && <button type="button" disabled={updatingListingId === listing.id} onClick={() => updateListingAvailability(listing, "available")} className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 disabled:opacity-50">Mark available</button>}
+                        <button type="button" disabled={updatingListingId === listing.id} onClick={() => updateListingAvailability(listing, "deleted")} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50"><Trash2 size={13} className="mr-1 inline" /> Remove listing</button>
+                      </div>
+                    )}
                     <p className="mt-3 text-[11px] text-[#8a969f]">Submitted {new Date(listing.created_at).toLocaleDateString("en-NG")}</p>
                   </div>
                 );

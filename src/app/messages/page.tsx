@@ -756,7 +756,7 @@ function MessagesContent() {
               <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e8f4ed] text-[#087b62]"><Users size={29} /></div>
                 <h2 className="mt-5 text-xl font-bold">Chat with anyone on SPATDEL</h2>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[#687987]">Tenants, agents, landlords, and admins can message each other. Each message shows the sender's profile role.</p>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[#687987]">Tenants, agents, landlords, and admins can message each other. Each message shows the sender&apos;s profile role.</p>
                 <button onClick={() => setDirectoryOpen(true)} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#102f46] px-5 py-3 text-sm font-bold text-white"><Plus size={16} /> New chat</button>
               </div>
             )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 
@@ -23,6 +23,33 @@ const houseIcon = L.divIcon({
   iconAnchor: [15, 36],
 });
 
+type LeafletContainerElement = HTMLElement & { _leaflet_id?: number };
+
+/**
+ * Leaflet stores an internal ID on its map element. If a route transition or
+ * React development remount interrupts map teardown, clear that stale marker
+ * when this map wrapper unmounts so a later MapContainer can initialize.
+ */
+function useLeafletContainerCleanup() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+
+    return () => {
+      const containers = wrapper?.querySelectorAll(".leaflet-container");
+      containers?.forEach((element) => {
+        const container = element as LeafletContainerElement;
+        if (container._leaflet_id !== undefined) {
+          delete container._leaflet_id;
+        }
+      });
+    };
+  }, []);
+
+  return wrapperRef;
+}
+
 function PinClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }) {
   useMapEvents({
     click(event) {
@@ -43,9 +70,10 @@ export function PropertyLocationPicker({
 }) {
   const selectedPosition: [number, number] | null =
     latitude !== null && longitude !== null ? [latitude, longitude] : null;
+  const wrapperRef = useLeafletContainerCleanup();
 
   return (
-    <div className="relative z-0 isolate overflow-hidden rounded-xl border border-[#d5dde2]">
+    <div ref={wrapperRef} className="relative z-0 isolate overflow-hidden rounded-xl border border-[#d5dde2]">
       <MapContainer center={selectedPosition ?? IJEGUN_CENTER} zoom={15} scrollWheelZoom className="relative z-0 h-[300px] w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -60,6 +88,7 @@ export function PropertyLocationPicker({
 }
 
 export default function PropertyMap({ properties }: { properties: MappedProperty[] }) {
+  const wrapperRef = useLeafletContainerCleanup();
   const mappedProperties = useMemo(
     () => properties.filter((property) =>
       typeof property.latitude === "number" &&
@@ -71,7 +100,7 @@ export default function PropertyMap({ properties }: { properties: MappedProperty
   );
 
   return (
-    <div className="relative z-0 isolate overflow-hidden rounded-2xl border border-[#102f46]/10 shadow-2xl">
+    <div ref={wrapperRef} className="relative z-0 isolate overflow-hidden rounded-2xl border border-[#102f46]/10 shadow-2xl">
       <MapContainer center={IJEGUN_CENTER} zoom={14} scrollWheelZoom className="relative z-0 h-[430px] w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

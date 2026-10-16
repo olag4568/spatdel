@@ -525,7 +525,7 @@ export default function WalletPage() {
                       BVN (11 digits)
                       <input value={bvn} onChange={(event) => setBvn(event.target.value.replace(/\D/g, "").slice(0, 11))} required inputMode="numeric" autoComplete="off" pattern="[0-9]{11}" minLength={11} maxLength={11} placeholder="Enter BVN" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                     </label>
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Only submit your own details. Do not enter someone else's BVN or account number. Paystack handles the identity check; SPATDEL stores the provider reference and verification status, not the BVN or full account number.</p>
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">Only submit your own details. Do not enter someone else&apos;s BVN or account number. Paystack handles the identity check; SPATDEL stores the provider reference and verification status, not the BVN or full account number.</p>
                     <button type="submit" disabled={submittingKyc || loadingBanks || banks.length === 0 || !accountName} className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60">{submittingKyc ? "Starting verification…" : "Verify identity with Paystack"}</button>
                   </form>
                 )}
@@ -579,7 +579,7 @@ export default function WalletPage() {
               </div>
             </section>
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-              <div className="flex items-start gap-2"><AlertTriangle size={18} className="mt-1 shrink-0" /><p><strong>Payments are not live yet.</strong> Do not send money to an admin's personal account. Deposits, escrow/collection, refunds and seller payouts must be processed and reconciled through an approved provider and trusted server-side webhooks. This dashboard is the first UI layer, not a live-money transfer system.</p></div>
+              <div className="flex items-start gap-2"><AlertTriangle size={18} className="mt-1 shrink-0" /><p><strong>Payments are not live yet.</strong> Do not send money to an admin&apos;s personal account. Deposits, escrow/collection, refunds and seller payouts must be processed and reconciled through an approved provider and trusted server-side webhooks. This dashboard is the first UI layer, not a live-money transfer system.</p></div>
             </section>
 </>
         )}

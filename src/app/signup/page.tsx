@@ -200,7 +200,7 @@ export default function SignupPage() {
             className="relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between"
             style={{
               backgroundImage:
-                "linear-gradient(180deg, rgba(16, 47, 70, 0.35) 0%, rgba(16, 47, 70, 0.88) 100%), url('https://commons.wikimedia.org/wiki/Special:FilePath/Lagos_House,_Ikeja.jpg')",
+                "linear-gradient(180deg, rgba(16, 47, 70, 0.35) 0%, rgba(16, 47, 70, 0.88) 100%), url('https://images.privateproperty.com.ng/large/tastefully-newly-built-2-bedroom-0UGeMX6xmyH8DrcXxiJN.jpg')",
               backgroundPosition: "center",
               backgroundSize: "cover",
             }}

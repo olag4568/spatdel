@@ -196,7 +196,15 @@ export default function SignupPage() {
       <section className="flex min-h-[calc(100vh-76px)] items-center justify-center px-5 py-12 sm:px-8">
         <div className="grid w-full max-w-[1000px] overflow-hidden rounded-2xl bg-white shadow-xl lg:grid-cols-2">
           {/* LEFT SIDE */}
-          <div className="hidden bg-[#102f46] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+          <div
+            className="relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, rgba(16, 47, 70, 0.35) 0%, rgba(16, 47, 70, 0.88) 100%), url('https://commons.wikimedia.org/wiki/Special:FilePath/Lagos_House,_Ikeja.jpg')",
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          >
             <div>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#19e58f] text-[#071b18]">
                 <UserPlus size={26} />

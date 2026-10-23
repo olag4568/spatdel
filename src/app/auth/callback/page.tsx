@@ -15,23 +15,34 @@ export default function AuthCallbackPage() {
     handled.current = true;
 
     const finishSignIn = async () => {
-      const code = new URLSearchParams(window.location.search).get("code");
+      try {
+        const code = new URLSearchParams(window.location.search).get("code");
 
-      if (!code) {
-        setError("This confirmation link is missing its sign-in code. Request a new confirmation email and try again.");
-        return;
+        if (!code) {
+          setError(
+            "This confirmation link is missing its sign-in code. Request a new confirmation email and try again."
+          );
+          return;
+        }
+
+        const supabase = createClient();
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          setError(
+            "We could not complete email confirmation. The link may have expired or already been used. Please request a new confirmation email."
+          );
+          return;
+        }
+
+        router.replace("/");
+        router.refresh();
+      } catch {
+        setError(
+          "Something went wrong while confirming your email. Check your connection and try again, or request a new confirmation email."
+        );
       }
-
-      const supabase = createClient();
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-      if (exchangeError) {
-        setError("We could not complete email confirmation. The link may have expired or already been used. Please request a new confirmation email.");
-        return;
-      }
-
-      router.replace("/");
-      router.refresh();
     };
 
     void finishSignIn();

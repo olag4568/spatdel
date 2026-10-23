@@ -2189,9 +2189,9 @@ export default function Home() {
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="group rounded-xl bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-[#102f46]/10 hover:ring-1 hover:ring-[#087b62]/20 focus-within:-translate-y-1 focus-within:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
               <Zap
-                className="text-[#f05a00]"
+                className="text-[#f05a00] transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none"
                 size={28}
               />
 
@@ -2205,9 +2205,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="group rounded-xl bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-[#102f46]/10 hover:ring-1 hover:ring-[#087b62]/20 focus-within:-translate-y-1 focus-within:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
               <MapPin
-                className="text-[#087b62]"
+                className="text-[#087b62] transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none"
                 size={28}
               />
 
@@ -2221,9 +2221,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="group rounded-xl bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-[#102f46]/10 hover:ring-1 hover:ring-[#087b62]/20 focus-within:-translate-y-1 focus-within:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
               <ShieldCheck
-                className="text-[#f05a00]"
+                className="text-[#f05a00] transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none"
                 size={28}
               />
 
@@ -2237,9 +2237,9 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="group rounded-xl bg-white p-6 shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-[#102f46]/10 hover:ring-1 hover:ring-[#087b62]/20 focus-within:-translate-y-1 focus-within:shadow-xl motion-reduce:transform-none motion-reduce:transition-none">
               <Star
-                className="text-[#087b62]"
+                className="text-[#087b62] transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none"
                 size={28}
               />
 

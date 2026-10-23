@@ -1526,27 +1526,27 @@ export default function Home() {
             <div className="mt-10 grid max-w-[620px] grid-cols-3 gap-4 border-t border-[#102f46]/10 pt-7">
               <div>
                 <p className="text-2xl font-black">
-                  8+
+                  {propertiesLoading || propertiesError ? "—" : properties.length}
                 </p>
 
                 <p className="mt-1 text-[9px] text-[#71808a]">
-                  Vetted properties
+                  Verified properties
                 </p>
               </div>
 
               <div>
                 <p className="text-2xl font-black">
-                  95%
+                  Flood risk
                 </p>
 
                 <p className="mt-1 text-[9px] text-[#71808a]">
-                  Flood model accuracy
+                  Property insights
                 </p>
               </div>
 
               <div>
                 <p className="text-2xl font-black">
-                  24/7
+                  Anytime
                 </p>
 
                 <p className="mt-1 text-[9px] text-[#71808a]">

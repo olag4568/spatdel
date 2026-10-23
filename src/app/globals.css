@@ -19,3 +19,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Slow, seamless platform-feature marquee */
+.spatdel-marquee {
+  overflow: hidden;
+  width: 100%;
+}
+
+.spatdel-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: spatdel-marquee-scroll 42s linear infinite;
+  will-change: transform;
+}
+
+.spatdel-marquee:hover .spatdel-marquee-track,
+.spatdel-marquee:focus-within .spatdel-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes spatdel-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spatdel-marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    gap: 1rem 0;
+  }
+}

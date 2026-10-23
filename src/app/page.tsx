@@ -1660,63 +1660,60 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TRUST */}
-      <section className="border-y border-[#102f46]/10 bg-white">
-        <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-6 px-5 py-7 sm:grid-cols-4 sm:px-8">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="text-[#087b62]" />
+      {/* TRUST MARQUEE */}
+      <section
+        aria-label="SPATDEL platform features"
+        className="overflow-hidden border-y border-[#102f46]/10 bg-white py-6"
+      >
+        <div className="spatdel-marquee">
+          <div className="spatdel-marquee-track">
+            {[0, 1].map((copy) => (
+              <div
+                key={copy}
+                className="flex shrink-0 items-center"
+                aria-hidden={copy === 1 ? true : undefined}
+              >
+                <div className="flex items-center gap-3 px-7 sm:px-10">
+                  <ShieldCheck className="shrink-0 text-[#087b62]" size={21} />
+                  <div className="min-w-[150px]">
+                    <p className="text-xs font-bold text-[#102f46]">Verified Homes</p>
+                    <p className="mt-1 text-[9px] text-[#71808a]">Inspected listings</p>
+                  </div>
+                </div>
 
-            <div>
-              <p className="text-xs font-bold">
-                Verified Homes
-              </p>
+                <span className="h-8 w-px bg-[#102f46]/10" aria-hidden="true" />
 
-              <p className="text-[9px] text-[#71808a]">
-                Inspected listings
-              </p>
-            </div>
-          </div>
+                <div className="flex items-center gap-3 px-7 sm:px-10">
+                  <Zap className="shrink-0 text-[#f05a00]" size={21} />
+                  <div className="min-w-[150px]">
+                    <p className="text-xs font-bold text-[#102f46]">Power Data</p>
+                    <p className="mt-1 text-[9px] text-[#71808a]">Real community reports</p>
+                  </div>
+                </div>
 
-          <div className="flex items-center gap-3">
-            <Zap className="text-[#f05a00]" />
+                <span className="h-8 w-px bg-[#102f46]/10" aria-hidden="true" />
 
-            <div>
-              <p className="text-xs font-bold">
-                Power Data
-              </p>
+                <div className="flex items-center gap-3 px-7 sm:px-10">
+                  <MapPin className="shrink-0 text-[#087b62]" size={21} />
+                  <div className="min-w-[150px]">
+                    <p className="text-xs font-bold text-[#102f46]">Flood Intelligence</p>
+                    <p className="mt-1 text-[9px] text-[#71808a]">Location-based risk</p>
+                  </div>
+                </div>
 
-              <p className="text-[9px] text-[#71808a]">
-                Real community reports
-              </p>
-            </div>
-          </div>
+                <span className="h-8 w-px bg-[#102f46]/10" aria-hidden="true" />
 
-          <div className="flex items-center gap-3">
-            <MapPin className="text-[#087b62]" />
+                <div className="flex items-center gap-3 px-7 sm:px-10">
+                  <ShieldCheck className="shrink-0 text-[#f05a00]" size={21} />
+                  <div className="min-w-[150px]">
+                    <p className="text-xs font-bold text-[#102f46]">Payment Protection</p>
+                    <p className="mt-1 text-[9px] text-[#71808a]">Escrow security</p>
+                  </div>
+                </div>
 
-            <div>
-              <p className="text-xs font-bold">
-                Flood Intelligence
-              </p>
-
-              <p className="text-[9px] text-[#71808a]">
-                Location-based risk
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="text-[#f05a00]" />
-
-            <div>
-              <p className="text-xs font-bold">
-                Payment Protection
-              </p>
-
-              <p className="text-[9px] text-[#71808a]">
-                Escrow security
-              </p>
-            </div>
+                <span className="h-8 w-px bg-[#102f46]/10" aria-hidden="true" />
+              </div>
+            ))}
           </div>
         </div>
       </section>

@@ -70,6 +70,8 @@ export default function SignupPage() {
         email: cleanEmail,
         password,
         options: {
+          // Return to this app origin, where the callback exchanges the PKCE code for a session.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: cleanName,
             role: "tenant",

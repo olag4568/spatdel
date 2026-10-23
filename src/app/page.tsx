@@ -1656,7 +1656,7 @@ export default function Home() {
             <p className="mt-3 text-[10px] leading-5 text-[#71808a]">
               Select a pin to preview a registered property. Pin placement is a visual area preview until exact map coordinates are available.
             </p>
-          </div>          </div>
+          </div>
         </div>
       </section>
 

@@ -1557,68 +1557,105 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <div className="overflow-hidden rounded-2xl bg-[#102f46] shadow-2xl">
-              <div className="relative h-[430px] overflow-hidden">
-                <img
-                  src={
-                    properties[0]?.image ||
-                    "/spatdel.png"
-                  }
-                  alt="Lagos property"
-                  className="h-full w-full object-cover opacity-90"
-                />
+            <div className="overflow-hidden rounded-2xl border border-[#102f46]/10 bg-[#e5eee8] shadow-2xl">
+              <div className="relative min-h-[430px] overflow-hidden bg-[radial-gradient(ellipse_at_top_left,_#f7fbf7_0%,_#d7e7df_45%,_#b5d0c3_100%)]">
+                <div className="absolute inset-0 opacity-40" aria-hidden="true">
+                  <svg viewBox="0 0 600 520" className="h-full w-full" preserveAspectRatio="xMidYMid slice">
+                    <defs>
+                      <pattern id="map-grid" width="34" height="34" patternUnits="userSpaceOnUse">
+                        <path d="M 34 0 L 0 0 0 34" fill="none" stroke="#7ba394" strokeWidth="1" />
+                      </pattern>
+                    </defs>
+                    <rect width="600" height="520" fill="url(#map-grid)" />
+                    <g fill="none" strokeLinecap="round">
+                      <path d="M-30 130 L170 235 L330 165 L640 335" stroke="#fffdf6" strokeWidth="42" />
+                      <path d="M70 -20 L170 150 L130 300 L300 540" stroke="#fffdf6" strokeWidth="32" />
+                      <path d="M350 -20 L300 165 L420 285 L390 540" stroke="#fffdf6" strokeWidth="35" />
+                      <path d="M-30 385 L180 310 L360 380 L640 260" stroke="#fffdf6" strokeWidth="25" />
+                      <path d="M-30 130 L170 235 L330 165 L640 335" stroke="#c5d7ce" strokeWidth="2" />
+                      <path d="M70 -20 L170 150 L130 300 L300 540" stroke="#c5d7ce" strokeWidth="2" />
+                      <path d="M350 -20 L300 165 L420 285 L390 540" stroke="#c5d7ce" strokeWidth="2" />
+                    </g>
+                    <path d="M430 0 C390 100 470 145 430 220 S500 380 470 520 L600 520 L600 0 Z" fill="#a8d2c4" opacity=".8" />
+                  </svg>
+                </div>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-[#071b18] via-transparent to-transparent" />
+                <div className="absolute left-[8%] top-[25%] h-16 w-20 rotate-[-12deg] rounded-sm bg-[#aec8b8] shadow-[8px_8px_0_#8eae9d]" />
+                <div className="absolute left-[27%] top-[11%] h-12 w-16 rotate-[10deg] rounded-sm bg-[#c0d4c8] shadow-[7px_7px_0_#98b7a7]" />
+                <div className="absolute left-[51%] top-[27%] h-20 w-24 rotate-[-8deg] rounded-sm bg-[#9ebead] shadow-[9px_9px_0_#7fa594]" />
+                <div className="absolute right-[8%] top-[13%] h-14 w-20 rotate-[12deg] rounded-sm bg-[#c1d6ca] shadow-[7px_7px_0_#98b7a7]" />
+                <div className="absolute left-[12%] bottom-[14%] h-16 w-24 rotate-[8deg] rounded-sm bg-[#bfd5c9] shadow-[8px_8px_0_#98b8a8]" />
+                <div className="absolute left-[44%] bottom-[11%] h-12 w-20 rotate-[-10deg] rounded-sm bg-[#b0cdbd] shadow-[7px_7px_0_#8eae9d]" />
+                <div className="absolute right-[10%] bottom-[19%] h-16 w-24 rotate-[7deg] rounded-sm bg-[#a8c7b7] shadow-[8px_8px_0_#87a997]" />
 
-                <div className="absolute left-5 top-5 rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur">
-                  <div className="flex items-center justify-between gap-8">
+                <div className="absolute left-4 top-4 z-20 rounded-xl border border-white/70 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
+                  <div className="flex items-center gap-2 text-[#087b62]">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e4f5ee]"><MapPin size={15} /></span>
                     <div>
-                      <p className="text-[8px] font-bold text-[#71808a]">
-                        VERIFIED HOME
-                      </p>
-
-                      <p className="mt-1 text-xs font-black">
-                        Lekki, Lagos
-                      </p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#71808a]">SPATDEL property map</p>
+                      <p className="text-xs font-black text-[#102f46]">Registered listings</p>
                     </div>
-
-                    <span className="rounded bg-[#e4f5ee] px-2 py-1 text-[7px] font-black text-[#087b62]">
-                      SECURED
-                    </span>
                   </div>
+                </div>
 
-                  <p className="mt-2 text-sm font-black">
-                    {properties[0]
-                      ? getDisplayedPrice(properties[0].price)
-                      : "₦1,200,000"}
-                    {properties[0] && getOriginalPrice(properties[0].price) && (
-                      <span className="ml-2 text-xs font-semibold text-[#9aa4aa] line-through decoration-2">
-                        {getOriginalPrice(properties[0].price)}
+                {properties.slice(0, 4).map((property, index) => {
+                  const pinPositions = [
+                    "left-[22%] top-[43%]",
+                    "left-[53%] top-[16%]",
+                    "right-[18%] top-[49%]",
+                    "left-[38%] bottom-[16%]",
+                  ];
+                  return (
+                    <button
+                      key={property.id}
+                      type="button"
+                      onClick={() => setSelectedProperty(property)}
+                      className={`absolute z-10 ${pinPositions[index]} group flex -translate-x-1/2 -translate-y-1/2 flex-col items-center transition hover:z-30 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f05a00] focus-visible:ring-offset-4`}
+                      aria-label={`View registered property: ${property.title}, ${property.location || "Lagos"}`}
+                    >
+                      <span className="relative flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-[#f05a00] text-white shadow-[0_5px_14px_rgba(16,47,70,.3)]">
+                        <MapPin size={18} fill="currentColor" />
                       </span>
-                    )}{" "} / yr
-                  </p>
+                      <span className="mt-1 max-w-28 truncate rounded-md border border-white/70 bg-white/95 px-2 py-1 text-[9px] font-black text-[#102f46] shadow-md">
+                        {property.location || property.title}
+                      </span>
+                    </button>
+                  );
+                })}
 
-                  <div className="mt-3 flex items-center gap-2 text-[9px] text-[#63717a]">
-                    <span className="text-[#f05a00]">
-                      ●
-                    </span>
-                    Power Grid: 20h/day
+                <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center justify-between gap-3 rounded-xl border border-white/70 bg-[#102f46]/95 px-4 py-3 text-white shadow-xl">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/60">Explore by location</p>
+                    <p className="mt-1 truncate text-sm font-black">
+                      {properties.length} verified {properties.length === 1 ? "listing" : "listings"} on SPATDEL
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection("homes")}
+                    className="flex shrink-0 items-center gap-2 rounded-lg bg-[#f05a00] px-3 py-2 text-[10px] font-black text-white transition hover:bg-[#d94e00]"
+                  >
+                    View homes <ArrowRight size={13} />
+                  </button>
                 </div>
 
-                <div className="absolute bottom-5 left-5 flex flex-wrap gap-5 text-[9px] text-white/80">
-                  <span>
-                    <i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#19e58f]" />
-                    Safe Zone
-                  </span>
-
-                  <span>
-                    <i className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f05a00]" />
-                    Power Grid
-                  </span>
-                </div>
+                {propertiesLoading && (
+                  <div className="absolute inset-x-4 bottom-20 z-20 rounded-lg bg-white/90 px-3 py-2 text-center text-xs font-bold text-[#102f46] shadow">
+                    Loading registered properties…
+                  </div>
+                )}
+                {!propertiesLoading && properties.length === 0 && (
+                  <div className="absolute inset-x-5 top-1/2 z-20 -translate-y-1/2 rounded-xl border border-white/70 bg-white/90 p-4 text-center shadow-lg backdrop-blur">
+                    <MapPin className="mx-auto text-[#087b62]" size={24} />
+                    <p className="mt-2 text-sm font-black text-[#102f46]">Your property map starts here</p>
+                    <p className="mt-1 text-xs leading-5 text-[#63717a]">Approved property listings will appear on this map when available.</p>
+                  </div>
+                )}
               </div>
             </div>
+            <p className="mt-3 text-[10px] leading-5 text-[#71808a]">
+              Select a pin to preview a registered property. Pin placement is a visual area preview until exact map coordinates are available.
+            </p>
           </div>
         </div>
       </section>
